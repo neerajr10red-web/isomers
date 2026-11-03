@@ -82,7 +82,7 @@
   /* ---------- Atom styles (CPK colours) ---------- */
   const ELEMENTS = ISO.ELEMENTS = {
     H: { color: '#eceef2', ball: 0.25, vdw: 1.20, name: 'Hydrogen', ink: '#2b2f38' },
-    C: { color: '#5c626d', ball: 0.40, vdw: 1.70, name: 'Carbon', ink: '#ffffff' },
+    C: { color: '#646b76', ball: 0.40, vdw: 1.70, name: 'Carbon', ink: '#ffffff' },
     O: { color: '#e3342b', ball: 0.38, vdw: 1.52, name: 'Oxygen', ink: '#ffffff' },
     N: { color: '#3456e6', ball: 0.38, vdw: 1.55, name: 'Nitrogen', ink: '#ffffff' },
     F: { color: '#93d84a', ball: 0.36, vdw: 1.47, name: 'Fluorine', ink: '#1d2a10' },
@@ -114,7 +114,8 @@
       const bad = hexToRgb(get('--bad', '#c0362e'));
       themeCache = {
         bg: hexToRgb(get('--viewer-bg', '#f8f9fd')),
-        accent: get('--accent', '#5146e0'),
+        accent: get('--accent', '#c62828'),
+        ink: get('--text', '#1b1e23'),
         bad: rgb(bad), good: get('--good', '#0f7f59'), warn: get('--warn', '#a35f00'),
         strain: { base: rgb(bad), light: rgb(mix(bad, WHITE, 0.45)), dark: rgb(mix(bad, BLACK, 0.35)) }
       };
@@ -127,7 +128,7 @@
     let s = shadeCache.get(key);
     if (!s) {
       const base = hexToRgb(elStyle(el).color);
-      const f = fog / 7 * 0.34;
+      const f = fog / 7 * 0.22; // gentle fade for atoms at the back (stronger fades lose them on dark backgrounds)
       s = {
         light: rgb(mix(mix(base, WHITE, 0.62), bg, f)),
         base: rgb(mix(base, bg, f)),
@@ -347,7 +348,7 @@
       self.tween = null;
       if (pts.size === 1) { self.dragging = true; vel = null; self.emit('dragstart'); }
       if (pts.size === 2) pinch = dist2();
-      try { c.focus({ preventScroll: true }); } catch (err) { c.focus(); }
+      // No focus() here: a mouse drag shouldn't leave a focus box on the model. Keyboard users reach it with Tab.
       e.preventDefault();
     });
     c.addEventListener('pointermove', function (e) {
@@ -391,7 +392,8 @@
     c.addEventListener('dblclick', function () { if (self.opts.interactive) self.resetView(); });
     c.addEventListener('wheel', function (e) {
       if (!self.opts.interactive) return;
-      if (document.activeElement !== c && !e.ctrlKey && !self.isExpanded()) return;
+      // Plain scrolling always scrolls the page. Zoom needs Ctrl + scroll (or a trackpad pinch), or full screen.
+      if (!e.ctrlKey && !self.isExpanded()) return;
       e.preventDefault();
       self.setZoom(self.zoom * Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0016)));
     }, { passive: false });
@@ -592,7 +594,8 @@
     ctx.strokeStyle = sh.rim;
     ctx.globalAlpha = 0.5 * alphaAll;
     ctx.stroke();
-    if (this.opts.labels) {
+    // In space-filling mode the H labels would cover the whole shape, so only heavier atoms get labels.
+    if (this.opts.labels && !(it.el === 'H' && this.opts.style === 'space')) {
       const fs = Math.max(9 * s.dpr, Math.min(24 * s.dpr, r * 0.95));
       ctx.globalAlpha = alphaAll;
       ctx.fillStyle = elStyle(it.el).ink;
@@ -714,26 +717,11 @@
     const canvas = document.createElement('canvas');
     canvas.setAttribute('role', 'img');
     wrap.appendChild(canvas);
-    if (opts.badge) {
-      const b = document.createElement('span');
-      b.className = 'viewer-badge';
-      b.textContent = opts.badge;
-      wrap.appendChild(b);
-    }
-    if (opts.hint !== false) {
-      const h = document.createElement('div');
-      h.className = 'viewer-hint';
-      h.setAttribute('aria-hidden', 'true');
-      h.innerHTML = (ISO.ICONS ? ISO.ICONS.drag : '') + (opts.hintText || 'Drag to spin');
-      wrap.appendChild(h);
-    }
     if (opts.fullscreen !== false) {
       const fsb = document.createElement('button');
       fsb.type = 'button';
       fsb.className = 'icon-btn viewer-fs';
-      fsb.setAttribute('aria-label', 'Full screen');
-      fsb.title = 'Full screen';
-      fsb.innerHTML = ISO.ICONS ? ISO.ICONS.expand : '⤢';
+      setFsButton(fsb, false);
       fsb.addEventListener('click', function () { ISO.toggleFullscreen(fig); });
       wrap.appendChild(fsb);
     }
@@ -775,10 +763,25 @@
       } catch (e) { expand(el); }
     } else expand(el);
   };
-  function expand(el) { el.classList.add('is-expanded'); document.body.classList.add('has-expanded'); }
-  function collapse(el) { el.classList.remove('is-expanded'); document.body.classList.remove('has-expanded'); }
+  function expand(el) { el.classList.add('is-expanded'); document.body.classList.add('has-expanded'); refreshFsButtons(); }
+  function collapse(el) { el.classList.remove('is-expanded'); document.body.classList.remove('has-expanded'); refreshFsButtons(); }
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
     document.querySelectorAll('.viewer-card.is-expanded').forEach(collapse);
   });
+  /** The corner button shows an X ("Exit full screen") while its model is full screen. */
+  function setFsButton(btn, on) {
+    btn.innerHTML = ISO.ICONS ? (on ? ISO.ICONS.close : ISO.ICONS.expand) : (on ? '×' : '⤢');
+    btn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+    btn.title = on ? 'Exit full screen (Esc)' : 'Full screen';
+  }
+  function refreshFsButtons() {
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    document.querySelectorAll('.viewer-card').forEach(function (card) {
+      const btn = card.querySelector('.viewer-fs');
+      if (btn) setFsButton(btn, fsEl === card || card.classList.contains('is-expanded'));
+    });
+  }
+  document.addEventListener('fullscreenchange', refreshFsButtons);
+  document.addEventListener('webkitfullscreenchange', refreshFsButtons);
 })();

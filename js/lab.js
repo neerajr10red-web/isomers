@@ -1,4 +1,4 @@
-/* Isomers by Neeraj the Beloved — 3D Model Lab: Explore isomers · Spin the Bond · Mirror Challenge */
+/* Isomers by Neeraj the Beloved — 3D Lab: Explore isomers · Spin the Bond · Mirror Challenge */
 (function () {
   'use strict';
   const ISO = window.ISO;
@@ -6,40 +6,47 @@
   const $ = function (id) { return document.getElementById(id); };
   const pressed = function (btn, on) { btn.setAttribute('aria-pressed', on ? 'true' : 'false'); };
   const P = function (a) { return [a.x, a.y, a.z]; };
+  const say = function (id, html, tone) {
+    const el = $(id);
+    el.className = 'status' + (tone ? ' ' + tone : '');
+    el.innerHTML = html;
+  };
 
   /* =========================================================
      EXPLORE: every isomer of a formula, side by side
      ========================================================= */
   const Explore = {
-    st: { style: 'ball', showH: true, labels: false, sync: false, spin: false, set: null },
+    st: { style: 'ball', showH: true, labels: false, sync: false },
     cards: [],
     group: null,
 
-    init: function () {
+    init: function (firstSet) {
       const self = this, st = this.st;
-      const picker = $('set-picker');
       ISO.SETS.forEach(function (set) {
         const b = document.createElement('button');
         b.type = 'button';
         b.dataset.set = set.id;
         b.innerHTML = set.id === 'mirror' ? 'Mirror pairs' : ISO.formulaHTML(set.title);
-        pressed(b, false);
+        if (set.id !== 'mirror') b.setAttribute('aria-label', set.title); // read out as "C4H10"
         b.addEventListener('click', function () { self.showSet(set.id); });
-        picker.appendChild(b);
+        $('set-picker').appendChild(b);
       });
       const styleBtns = $('style-picker').querySelectorAll('[data-style]');
       styleBtns.forEach(function (b) {
         b.addEventListener('click', function () {
           st.style = b.dataset.style;
           styleBtns.forEach(function (x) { pressed(x, x === b); });
-          self.cards.forEach(function (c) { c.viewer.setStyle(st.style); });
+          self.each(function (v) { v.setStyle(st.style); });
         });
       });
-      ISO.bindToggle($('opt-h'), st.showH, function (on) { st.showH = on; self.each(function (v) { v.setShowH(on); }); });
-      ISO.bindToggle($('opt-labels'), st.labels, function (on) { st.labels = on; self.each(function (v) { v.setLabels(on); }); });
-      ISO.bindToggle($('opt-sync'), st.sync, function (on) { st.sync = on; if (self.group) self.group.setEnabled(on); });
-      ISO.bindToggle($('opt-spin'), st.spin, function (on) { st.spin = on; self.each(function (v) { v.setAutoSpin(on); }); });
-      this.showSet(ISO.SETS[0].id);
+      $('opt-h').addEventListener('change', function (e) { st.showH = e.target.checked; self.each(function (v) { v.setShowH(st.showH); }); });
+      $('opt-labels').addEventListener('change', function (e) { st.labels = e.target.checked; self.each(function (v) { v.setLabels(st.labels); }); });
+      $('opt-sync').addEventListener('change', function (e) { st.sync = e.target.checked; if (self.group) self.group.setEnabled(st.sync); });
+      // Browsers can keep checkboxes ticked after a reload, so start from what the page shows.
+      st.showH = $('opt-h').checked;
+      st.labels = $('opt-labels').checked;
+      st.sync = $('opt-sync').checked;
+      this.showSet(firstSet || ISO.SETS[0].id);
     },
 
     each: function (fn) { this.cards.forEach(function (c) { fn(c.viewer); }); },
@@ -48,12 +55,12 @@
       const self = this, st = this.st;
       const set = ISO.SETS.filter(function (s) { return s.id === id; })[0];
       if (!set) return;
-      st.set = id;
       $('set-picker').querySelectorAll('button').forEach(function (b) { pressed(b, b.dataset.set === id); });
       const isMirror = set.id === 'mirror';
-      $('set-title').innerHTML = isMirror ? 'Mirror pairs' : ISO.formulaHTML(set.title);
-      $('set-count').textContent = isMirror ? (set.ids.length / 2) + ' mirror pairs' : set.ids.length + ' isomers';
-      $('set-tip').innerHTML = ISO.ICONS.bulb + '<span><b>Try this:</b> ' + set.tip + '</span>';
+      $('set-title').innerHTML = isMirror
+        ? 'Mirror pairs <span class="muted">(' + (set.ids.length / 2) + ' pairs)</span>'
+        : ISO.formulaHTML(set.title) + ' <span class="muted">(' + set.ids.length + ' isomers)</span>';
+      $('set-tip').textContent = 'Try this: ' + set.tip;
 
       this.cards.forEach(function (c) { c.viewer.destroy(); c.el.remove(); });
       const grid = $('explore-grid');
@@ -63,14 +70,11 @@
       this.cards = set.ids.map(function (mid, i) {
         const mol = mols[i];
         const mirrored = !!(set.mirrored && set.mirrored[i]);
-        const card = ISO.makeViewerCard({
-          parent: grid,
-          viewer: { style: st.style, showH: st.showH, labels: st.labels, autoSpin: st.spin }
-        });
+        const card = ISO.makeViewerCard({ parent: grid, viewer: { style: st.style, showH: st.showH, labels: st.labels } });
         card.setCaption(ISO.escape(mol.name), mol.alt);
         // Mirror forms start facing as reflections of their partner.
         if (mirrored) card.viewer.initialQ = Q.mirror(card.viewer.initialQ);
-        // Same scale for the whole set (or for each mirror pair) so sizes can be compared.
+        // Same scale for the whole set (or for each mirror pair), so sizes can be compared.
         card.viewer.setMolecule(mol, { frame: isMirror ? [mols[i], mols[i ^ 1]] : mols });
         self.group.add(card.viewer, mirrored);
         return card;
@@ -83,19 +87,19 @@
      SPIN THE BOND: single vs double vs triple
      ========================================================= */
   const SPIN = [
-    { id: 'butane', label: 'Butane', sym: 'C–C', kind: 'single', badge: 'C–C single bond' },
-    { id: 'cis-but-2-ene', label: 'But-2-ene', sym: 'C=C', kind: 'double', badge: 'C=C double bond' },
-    { id: 'methylpropene', label: '2-Methylpropene', sym: 'C=C', kind: 'double', badge: 'C=C double bond' },
-    { id: 'but-2-yne', label: 'But-2-yne', sym: 'C≡C', kind: 'triple', badge: 'C≡C triple bond' }
+    { id: 'butane', label: 'Butane', sym: 'C–C', kind: 'single' },
+    { id: 'cis-but-2-ene', label: 'But-2-ene', sym: 'C=C', kind: 'double' },
+    { id: 'methylpropene', label: '2-Methylpropene', sym: 'C=C', kind: 'double' },
+    { id: 'but-2-yne', label: 'But-2-yne', sym: 'C≡C', kind: 'triple' }
   ];
   const INTRO = {
-    single: '<strong>Single bond.</strong> Drag the slider or press <b>Spin it</b>, and watch the CH₃ groups on the two ends.',
-    double: '<strong>Double bond.</strong> Try twisting it with the slider. (Spoiler: double bonds don’t like that.)',
-    triple: '<strong>Triple bond.</strong> Twist it and watch the shape of the carbon chain.'
+    single: '<p>Drag the slider or press Spin it. Watch the CH₃ groups at each end.</p>',
+    double: '<p>Try to twist it with the slider.</p>',
+    triple: '<p>Twist it and watch the carbon chain.</p>'
   };
-  const SINGLE_MSG = '<strong>Still butane the whole time!</strong> Single bonds spin freely, so the CH₃ groups being on the same side or on opposite sides doesn’t make a new molecule.';
-  const LOCK_MSG = '<strong>Locked!</strong> Twisting a double bond would break its second bond (the π bond), so it springs back. The groups stay stuck on their side, which is why cis and trans isomers exist.';
-  const TRIPLE_MSG = '<strong>Nothing changes, and that’s the point.</strong> The four carbons sit in a straight line, so each triple-bond carbon has only one other group. No “same side” or “opposite side” means no cis/trans.';
+  const SINGLE_MSG = '<p><b>Still butane.</b> Single bonds spin freely, so the CH₃ groups being on the same side or on opposite sides doesn’t make a different molecule.</p>';
+  const LOCK_MSG = '<p><b>It won’t turn.</b> Twisting a double bond would break its second bond (the π bond), so it snaps back. The groups are stuck on their sides, which is why cis and trans isomers exist.</p>';
+  const TRIPLE_MSG = '<p><b>Nothing changes.</b> The four carbons are in a straight line, so each triple-bond carbon has only one other group. There’s no “same side” or “opposite side”, so no cis/trans.</p>';
 
   function groupLabel(mol, i) {
     const a = mol.atoms[i];
@@ -103,6 +107,7 @@
     const hs = G.adjacency(mol)[i].filter(function (n) { return mol.atoms[n.to].el === 'H'; }).length;
     return ['C', 'CH', 'CH₂', 'CH₃'][hs] || 'C';
   }
+  /** How many atoms of `mol` sit where an atom of the same element sits in `ref`. */
   function matchCount(mol, ref, tol) {
     tol = tol || 0.35;
     let count = 0;
@@ -124,16 +129,15 @@
 
     init: function () {
       const self = this;
-      const picker = $('spin-picker');
       SPIN.forEach(function (d) {
         const b = document.createElement('button');
         b.type = 'button';
         b.dataset.id = d.id;
-        b.innerHTML = ISO.escape(d.label) + ' <span class="muted">' + d.sym + '</span>';
+        b.textContent = d.label + ' (' + d.sym + ')';
         b.addEventListener('click', function () { self.load(d.id); });
-        picker.appendChild(b);
+        $('spin-picker').appendChild(b);
       });
-      this.card = ISO.makeViewerCard({ parent: $('spin-stage'), variant: 'wide', caption: false, hintText: 'Drag to look around' });
+      this.card = ISO.makeViewerCard({ parent: $('spin-stage'), variant: 'wide', caption: false });
       const slider = $('twist');
       slider.addEventListener('input', function () { self.onSlide(+slider.value); });
       slider.addEventListener('change', function () { self.onRelease(); });
@@ -172,20 +176,17 @@
       v.setAxis([a, b]);
       v.setHighlights(this.marks());
       $('spin-picker').querySelectorAll('button').forEach(function (x) { pressed(x, x.dataset.id === id); });
-      $('twist').value = 0;
-      $('twist-out').textContent = '0°';
+      this.setSlider(0);
       $('spin-flip').hidden = def.kind !== 'double';
-      $('spin-badge').textContent = def.badge;
-      $('spin-badge').dataset.kind = def.kind;
       this.title();
       this.readout();
-      this.say(INTRO[def.kind]);
+      say('spin-status', INTRO[def.kind]);
     },
 
     marks: function () {
       const m = {};
-      m[this.s.a] = 'accent';
-      m[this.s.b] = 'accent';
+      m[this.s.a] = 'ink';
+      m[this.s.b] = 'ink';
       return m;
     },
 
@@ -196,17 +197,15 @@
       s.mol.name = name;
       this.card.viewer._label();
       $('spin-name').textContent = name;
-      $('spin-sub').innerHTML = ISO.formulaHTML(s.mol.formula) + ' · twisting the ' + s.def.sym + ' bond';
+      $('spin-sub').innerHTML = ISO.formulaHTML(s.mol.formula) + ', twisting the ' + s.def.sym + ' bond';
     },
 
     readout: function () {
-      const s = this.s, el = $('spin-readout');
+      const s = this.s;
       let html = '';
       if (s.def.id === 'butane' || s.def.id === 'cis-but-2-ene') {
         const d = Math.abs(G.dihedral(s.mol, s.n1, s.a, s.b, s.n2));
-        const same = d < 90;
-        html += '<div>CH₃ groups: <span class="pill ' + (same ? 'same' : 'opp') + '">' +
-          (same ? 'same side' : 'opposite sides') + '</span> <span class="muted">(' + Math.round(d) + '° apart)</span></div>';
+        html += '<p>CH₃ groups: <b>' + (d < 90 ? 'same side' : 'opposite sides') + '</b> (' + Math.round(d) + '° apart)</p>';
       }
       if (s.def.kind === 'double') {
         const adj = G.adjacency(s.mol);
@@ -214,20 +213,13 @@
           return adj[c].filter(function (n) { return n.to !== partner; }).map(function (n) { return groupLabel(s.mol, n.to); });
         };
         const fmt = function (g) {
-          const same = g[0] === g[1];
-          return '<b>' + g.join(' + ') + '</b> <span class="pill ' + (same ? 'same' : 'opp') + '">' + (same ? 'identical' : 'different') + '</span>';
+          return '<b>' + g.join(' + ') + '</b> (' + (g[0] === g[1] ? 'identical' : 'different') + ')';
         };
-        html += '<div>One C=C carbon holds ' + fmt(groups(s.a, s.b)) + '</div>';
-        html += '<div>The other holds ' + fmt(groups(s.b, s.a)) + '</div>';
+        html += '<p>One C=C carbon has ' + fmt(groups(s.a, s.b)) + '</p>';
+        html += '<p>The other has ' + fmt(groups(s.b, s.a)) + '</p>';
       }
-      if (s.def.kind === 'triple') html += '<div>The four carbons sit in a <b>straight line</b>.</div>';
-      el.innerHTML = html;
-    },
-
-    say: function (html, tone) {
-      const el = $('spin-status');
-      el.className = 'status' + (tone ? ' ' + tone : '');
-      el.innerHTML = html;
+      if (s.def.kind === 'triple') html += '<p>The four carbons are in a straight line.</p>';
+      $('spin-readout').innerHTML = html;
     },
 
     buttons: function (on) {
@@ -257,16 +249,16 @@
       $('twist-out').textContent = v + '°';
       if (s.def.kind === 'double') {
         s.bond.fx = Math.abs(v) > 4 ? 'strained' : null;
-        this.apply(13 * Math.tanh(v / 13)); // it barely moves, however hard you pull
+        this.apply(13 * Math.tanh(v / 13)); // it barely moves, however far you pull
         if (!s.warned && Math.abs(v) > 20) {
           s.warned = true;
-          this.say('<strong>It won’t budge!</strong> Let go and see what happens.', 'warn');
+          say('spin-status', '<p><b>It won’t budge.</b> Let go and see what happens.</p>', 'warn');
         }
       } else {
         this.apply(v);
         if (!s.spunMsg && Math.abs(v) > 60) {
           s.spunMsg = true;
-          this.say(s.def.kind === 'single' ? SINGLE_MSG : TRIPLE_MSG, 'good');
+          say('spin-status', s.def.kind === 'single' ? SINGLE_MSG : TRIPLE_MSG, 'good');
         }
       }
     },
@@ -283,7 +275,7 @@
         self.setSlider(0);
         self.apply(0);
       }, ISO.ease.outBack);
-      this.say(LOCK_MSG, 'warn');
+      say('spin-status', LOCK_MSG, 'warn');
     },
 
     play: function () {
@@ -297,7 +289,7 @@
           s.bond.fx = null;
           self.apply(0);
         }, function (t) { return t; });
-        this.say(LOCK_MSG, 'warn');
+        say('spin-status', LOCK_MSG, 'warn');
         return;
       }
       const start = s.twist;
@@ -306,7 +298,7 @@
         self.apply(deg);
         self.setSlider((((Math.round(deg) + 180) % 360) + 360) % 360 - 180);
       }, null, ISO.ease.inOut);
-      this.say(s.def.kind === 'single' ? SINGLE_MSG : TRIPLE_MSG, 'good');
+      say('spin-status', s.def.kind === 'single' ? SINGLE_MSG : TRIPLE_MSG, 'good');
     },
 
     flip: function () {
@@ -322,7 +314,7 @@
       s.bond.fx = 'broken';
       this.flipping = true;
       this.buttons(false);
-      this.say('<strong>Breaking the π bond…</strong> In real life this takes a lot of energy, like strong heat or UV light.', 'warn');
+      say('spin-status', '<p><b>Breaking the π bond…</b> In real life this needs a lot of energy, like strong heat or UV light.</p>', 'warn');
       this.cancel = ISO.animate(1700, function (p) { self.apply(180 * p); }, function () {
         self.cancel = null;
         s.bond.fx = null;
@@ -340,21 +332,21 @@
         self.readout();
         const total = s.mol.atoms.length;
         if (res.count === total) {
-          self.say('<strong>Same molecule!</strong> All ' + total + ' of ' + total + ' atoms line up with the dashed copy of where they started. ' +
-            'The two H atoms just swapped places. A carbon holding two identical groups can’t make cis/trans isomers.', 'good');
+          say('spin-status', '<p><b>Same molecule.</b> All ' + total + ' atoms line up with the dashed copy of where they started. ' +
+            'The two H atoms just swapped places, so a carbon with two identical groups can’t make cis/trans isomers.</p>', 'good');
         } else {
-          self.say('<strong>Now it’s ' + ISO.escape(ISO.lowerName(s.mol.name)) + ', a different molecule.</strong> Only ' + res.count + ' of ' + total +
-            ' atoms line up with the dashed copy of where they started (the circled ones moved). That’s why cis and trans are separate isomers.', 'bad');
+          say('spin-status', '<p><b>Now it’s ' + ISO.escape(ISO.lowerName(s.mol.name)) + ', a different molecule.</b> Only ' + res.count + ' of ' + total +
+            ' atoms line up with the dashed copy of where they started (the circled ones moved).</p>', 'bad');
         }
       }, ISO.ease.inOut);
     }
   };
 
   /* =========================================================
-     MIRROR CHALLENGE: try to stack CHBrClF on itself, then on its mirror image
+     MIRROR CHALLENGE: stack CHBrClF on a copy, then on its mirror image
      ========================================================= */
   const ORDER = ['C', 'Br', 'Cl', 'F', 'H'];
-  const TOL = 24 * Math.PI / 180;   // counts as "matching"
+  const TOL = 24 * Math.PI / 180;   // counts as lined up
   const SNAP = 40 * Math.PI / 180;  // close enough to snap into place (round 1)
 
   const Mirror = {
@@ -365,12 +357,11 @@
       t.name = 'Target CHBrClF';
       this.target = t;
       this.ghostQ = Q.normalize(Q.mul(Q.fromAxisAngle(1, 0, 0, 0.5), Q.fromAxisAngle(0, 1, 0, 0.7)));
-      this.card = ISO.makeViewerCard({ parent: $('mirror-stage'), variant: 'wide', caption: false, hintText: 'Drag your molecule', viewer: { labels: true } });
+      this.card = ISO.makeViewerCard({ parent: $('mirror-stage'), variant: 'wide', className: 'viewer-card--challenge', caption: false, viewer: { labels: true } });
       const v = this.card.viewer;
       v.on('rotate', function () { self.update(); });
       v.on('settle', function () { self.settled(); });
 
-      const meter = $('match-meter');
       this.chips = {};
       ORDER.forEach(function (el) {
         const st = ISO.ELEMENTS[el];
@@ -380,7 +371,7 @@
         c.style.background = st.color;
         c.style.color = st.ink;
         c.title = st.name;
-        meter.appendChild(c);
+        $('match-meter').appendChild(c);
         self.chips[el] = c;
       });
       $('round-picker').querySelectorAll('[data-round]').forEach(function (b) {
@@ -388,15 +379,11 @@
       });
       $('mirror-shuffle').addEventListener('click', function () { self.shuffle(); });
       $('mirror-show').addEventListener('click', function () { self.showMe(); });
-      this.buildPair();
       this.start('copy');
     },
 
     start: function (round) {
       this.round = round;
-      this.done = false;
-      this.hits3 = 0;
-      this.revealed = false;
       $('round-picker').querySelectorAll('[data-round]').forEach(function (b) { pressed(b, b.dataset.round === round); });
       this.user = round === 'copy' ? G.clone(this.target) : G.mirror(this.target);
       this.user.name = round === 'copy' ? 'Your molecule: a turned copy of CHBrClF' : 'Your molecule: the mirror image of CHBrClF';
@@ -405,25 +392,24 @@
       v.setMolecule(this.user, { frame: [this.target] });
       v.setGhost(this.target, { q: this.ghostQ });
       this.shuffle(true);
-      this.intro();
     },
 
     intro: function () {
-      this.say(this.round === 'copy'
-        ? '<strong>Round 1.</strong> Your molecule is an exact copy, just turned around. Drag it until all 5 atoms sit inside their dashed circles.'
-        : '<strong>Round 2.</strong> Now yours is the <b>mirror image</b>: same atoms, same bonds, just reflected. Get all 5 to line up.');
+      say('mirror-status', this.round === 'copy'
+        ? '<p><b>Round 1.</b> Your molecule is an exact copy, just turned around. Drag it until all 5 atoms are in their dashed circles.</p>'
+        : '<p><b>Round 2.</b> Now yours is the mirror image: same atoms and bonds, just reflected. Try to line up all 5.</p>');
     },
 
-    shuffle: function (quiet) {
+    shuffle: function (instant) {
       const v = this.card.viewer;
       let q, tries = 0;
       do { q = Q.random(); tries++; } while (this.score(q).count > 2 && tries < 50);
       this.done = false;
       this.revealed = false;
-      $('mirror-show').classList.remove('pulse');
+      this.hits3 = 0;
       v.setHighlights(null);
-      if (quiet || ISO.reducedMotion) v.setRotation(q); else v.animateTo(q, 550);
-      if (!quiet) this.intro();
+      if (instant || ISO.reducedMotion) v.setRotation(q); else v.animateTo(q, 550);
+      this.intro();
     },
 
     score: function (q) {
@@ -444,7 +430,7 @@
       const self = this;
       const r = this.score(this.card.viewer.q);
       ORDER.forEach(function (el) { self.chips[el].classList.toggle('on', !!r.matched[el]); });
-      $('match-score').innerHTML = r.count + ' <small>/ 5</small>';
+      $('match-score').textContent = r.count;
       if (this.round === 'copy' && !this.done && r.count === 5) this.win();
     },
 
@@ -457,10 +443,9 @@
         if (close) this.card.viewer.animateTo(this.ghostQ, 450, function () { self.win(); });
       } else if (!this.revealed && r.count >= 3) {
         this.hits3++;
-        this.say(this.hits3 === 1
-          ? '<strong>3 out of 5!</strong> Just two more to go…'
-          : '<strong>3 out of 5 again.</strong> Every time two groups line up, the other two end up swapped. Suspicious…', 'warn');
-        if (this.hits3 >= 2) $('mirror-show').classList.add('pulse');
+        say('mirror-status', this.hits3 === 1
+          ? '<p><b>3 out of 5.</b> Two more to go…</p>'
+          : '<p><b>3 out of 5 again.</b> Every time two groups line up, the other two end up swapped. Press Show me if you give up.</p>', 'warn');
       }
     },
 
@@ -468,20 +453,19 @@
       if (this.done) return;
       this.done = true;
       const self = this;
-      ISO.confetti();
-      this.say('<strong>Perfect match: 5 out of 5!</strong> A turned-around copy is still the same molecule.' +
-        '<span style="display:block;margin-top:0.7rem"><button type="button" class="btn btn-primary" id="go-round2">Try Round 2: the mirror image</button></span>', 'good');
+      say('mirror-status', '<p><b>5 out of 5.</b> A turned copy is still the same molecule.</p>' +
+        '<p><button type="button" class="btn primary" id="go-round2">Try Round 2</button></p>', 'good');
       $('go-round2').addEventListener('click', function () { self.start('mirror'); });
     },
 
     showMe: function () {
       const v = this.card.viewer, self = this;
-      $('mirror-show').classList.remove('pulse');
       if (this.round === 'copy') {
         v.animateTo(this.ghostQ, 900, function () { self.win(); });
         return;
       }
       const find = function (mol, el) { return mol.atoms.filter(function (a) { return a.el === el; })[0]; };
+      // The best try: line up Br and Cl exactly, then see where F and H end up.
       const best = Q.alignTwo(
         P(find(this.user, 'Br')), P(find(this.user, 'Cl')),
         Q.rotate(this.ghostQ, P(find(this.target, 'Br'))), Q.rotate(this.ghostQ, P(find(this.target, 'Cl'))));
@@ -491,45 +475,26 @@
         self.user.atoms.forEach(function (a, i) { if (a.el === 'H' || a.el === 'F') hl[i] = 'bad'; });
         v.setHighlights(hl, true);
         self.revealed = true;
-        self.say('<strong>Best possible: 3 out of 5.</strong> Line up any two groups and the other two (circled) are always swapped. ' +
-          'Mirror images that can’t be stacked are called <b>enantiomers</b>, like your left and right hands.' +
-          '<span class="joke">Even the Great Neeraj can’t do it. He tried. For a long time.</span>', 'bad');
+        say('mirror-status', '<p><b>3 out of 5 is the best anyone can do.</b> Line up any two groups and the other two (circled) are always swapped. ' +
+          'Mirror images that can’t be stacked are called enantiomers, like your left and right hands.</p>' +
+          '<p class="muted">Even the Great Neeraj can’t do it. He tried.</p>', 'bad');
       });
-    },
-
-    say: function (html, tone) {
-      const el = $('mirror-status');
-      el.className = 'status' + (tone ? ' ' + tone : '');
-      el.innerHTML = html;
-    },
-
-    buildPair: function () {
-      const wrap = $('mirror-pair');
-      const spin = !ISO.reducedMotion;
-      const left = ISO.makeViewerCard({ parent: wrap, variant: 'square', viewer: { labels: true, autoSpin: spin, spinSpeed: 0.45 } });
-      const line = document.createElement('div');
-      line.className = 'mirror-line';
-      line.setAttribute('aria-hidden', 'true');
-      wrap.appendChild(line);
-      const right = ISO.makeViewerCard({ parent: wrap, variant: 'square', viewer: { labels: true, autoSpin: spin, spinSpeed: 0.45 } });
-      const orig = ISO.get('chbrclf'), mir = ISO.get('chbrclf-mirror');
-      left.setCaption(ISO.escape(orig.name), 'the original');
-      right.setCaption(ISO.escape(mir.name), 'its mirror image');
-      right.viewer.initialQ = Q.mirror(right.viewer.initialQ);
-      left.viewer.setMolecule(orig, { frame: [orig, mir] });
-      right.viewer.setMolecule(mir, { frame: [orig, mir] });
-      this.pair = new ISO.SyncGroup();
-      this.pair.add(left.viewer, false).add(right.viewer, true);
-      this.pair.setEnabled(true);
     }
   };
 
-  /* ---------- Start each tab the first time it is opened ---------- */
+  /* ---------- Start each tab the first time it's opened ---------- */
   document.addEventListener('DOMContentLoaded', function () {
-    const mods = { explore: Explore, spin: Spin, mirror: Mirror };
+    // A link like lab.html#c4h8 opens Explore on that formula.
+    const hash = (location.hash || '').slice(1);
+    const startSet = ISO.SETS.some(function (s) { return s.id === hash; }) ? hash : null;
+    const mods = {
+      explore: function () { Explore.init(startSet); },
+      spin: function () { Spin.init(); },
+      mirror: function () { Mirror.init(); }
+    };
     const started = {};
-    ISO.initTabs(document.querySelector('.tabs'), function (hash) {
-      if (!started[hash] && mods[hash]) { started[hash] = true; mods[hash].init(); }
+    ISO.initTabs(document.querySelector('.tabs'), function (tab) {
+      if (!started[tab] && mods[tab]) { started[tab] = true; mods[tab](); }
     });
   });
 })();

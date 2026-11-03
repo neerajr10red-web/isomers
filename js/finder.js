@@ -1,21 +1,17 @@
-/* Isomers by Neeraj the Beloved — Isomer Finder: compare two models, or answer guided questions */
+/* Isomers by Neeraj the Beloved — Isomer Finder: compare two models, or answer the questions yourself */
 (function () {
   'use strict';
   const ISO = window.ISO;
   const Q = ISO.quat;
   const $ = function (id) { return document.getElementById(id); };
 
-  /* ---------- Flowchart (shared by both modes) ---------- */
+  /* ---------- The four questions (shared by both modes) ---------- */
   function buildFlow(ol) {
     ol.innerHTML = ISO.FLOW.map(function (st, i) {
-      const exits = Object.keys(st.exits).map(function (k) {
-        return '<span class="flow-exit" data-when="' + k + '">' + (k === 'yes' ? 'Yes' : 'No') + ' → ' + ISO.RESULTS[st.exits[k]].title + '</span>';
-      }).join('');
       return '<li class="flow-step" data-step="' + st.id + '">' +
-        '<div class="flow-main"><span class="flow-num">' + (i + 1) + '</span>' +
+        '<span class="flow-num">' + (i + 1) + '.</span>' +
         '<div class="flow-body"><p class="flow-q">' + st.q + '</p><p class="flow-ev"></p></div>' +
-        '<span class="flow-ans"></span></div>' +
-        '<div class="flow-exits">' + exits + '</div></li>';
+        '<span class="flow-ans"></span></li>';
     }).join('');
   }
   function resetFlow(ol) {
@@ -25,7 +21,6 @@
       li.querySelector('.flow-ev').innerHTML = '';
       li.querySelector('.flow-ans').textContent = '';
     });
-    ol.querySelectorAll('.flow-exit').forEach(function (e) { e.classList.remove('taken'); });
   }
   function activate(ol, id) {
     ol.querySelectorAll('.flow-step').forEach(function (li) { li.classList.toggle('active', li.dataset.step === id); });
@@ -36,8 +31,6 @@
     li.classList.add('done', ans ? 'yes' : 'no');
     li.querySelector('.flow-ans').textContent = ans ? 'Yes' : 'No';
     if (evidence) li.querySelector('.flow-ev').innerHTML = evidence;
-    const ex = li.querySelector('.flow-exit[data-when="' + (ans ? 'yes' : 'no') + '"]');
-    if (ex) ex.classList.add('taken');
   }
   function finishFlow(ol) {
     ol.classList.remove('running');
@@ -53,22 +46,21 @@
   }
   function verdictHTML(key, extra) {
     const r = ISO.RESULTS[key];
-    return '<p class="verdict-eyebrow">The Great Neeraj has ruled</p>' +
+    return '<p class="verdict-who">The Great Neeraj says:</p>' +
       '<h3>' + r.title + '</h3>' +
-      (r.sub ? '<p class="muted" style="margin-top:-0.3rem">(' + r.sub + ')</p>' : '') +
+      (r.sub ? '<p class="muted">(' + r.sub + ')</p>' : '') +
       '<p>' + r.text + '</p>' + (extra || '');
   }
 
   /* =========================================================
-     COMPARE: two molecules from the library, shown in 3D
+     COMPARE: two molecules from the list, shown in 3D
      ========================================================= */
-  const PRESETS = [
-    ['butane', 'isobutane', 'Butane vs 2-methylpropane'],
+  const EXAMPLES = [
+    ['butane', 'isobutane', 'butane vs 2-methylpropane'],
     ['cis-but-2-ene', 'trans-but-2-ene', 'cis vs trans but-2-ene'],
-    ['r-carvone', 's-carvone', 'The two carvones'],
-    ['butane', 'butane-twisted', 'Butane vs twisted butane'],
-    ['glucose', 'fructose', 'Glucose vs fructose'],
-    ['ethanol', 'butane', 'Ethanol vs butane']
+    ['glucose', 'fructose', 'glucose vs fructose'],
+    ['r-carvone', 's-carvone', 'the two carvones'],
+    ['butane', 'butane-twisted', 'butane vs twisted butane']
   ];
 
   const Compare = {
@@ -86,30 +78,21 @@
         }).join('');
         sel.addEventListener('change', function () { self.update(); });
       });
-
       this.cardA = ISO.makeViewerCard({ parent: $('stage-a') });
       this.cardB = ISO.makeViewerCard({ parent: $('stage-b') });
-      this.group = new ISO.SyncGroup();
-      this.group.add(this.cardA.viewer, false).add(this.cardB.viewer, false);
-      ISO.bindToggle($('opt-sync'), false, function (on) { self.group.setEnabled(on); });
-      ISO.bindToggle($('opt-labels'), false, function (on) {
-        self.cardA.viewer.setLabels(on);
-        self.cardB.viewer.setLabels(on);
-      });
 
-      const presets = $('presets');
-      PRESETS.forEach(function (p) {
+      EXAMPLES.forEach(function (ex, i) {
         const b = document.createElement('button');
         b.type = 'button';
-        b.className = 'chip';
-        b.textContent = p[2];
-        b.addEventListener('click', function () { self.load(p[0], p[1], true); });
-        presets.appendChild(b);
+        b.textContent = ex[2];
+        b.addEventListener('click', function () { self.load(ex[0], ex[1], true); });
+        $('presets').appendChild(b);
+        if (i < EXAMPLES.length - 1) $('presets').appendChild(document.createTextNode(','));
       });
       buildFlow($('flow-compare'));
       $('run').addEventListener('click', function () { self.run(); });
 
-      // Deep links: finder.html?a=butane&b=isobutane
+      // Links like finder.html?a=butane&b=isobutane open with that pair already checked.
       const qs = new URLSearchParams(location.search);
       const a = qs.get('a'), b = qs.get('b');
       if (a && b && ISO.entry(a) && ISO.entry(b)) this.load(a, b, true);
@@ -126,20 +109,17 @@
     update: function () {
       const a = ISO.get($('pick-a').value), b = ISO.get($('pick-b').value);
       const eA = ISO.entry(a.id), eB = ISO.entry(b.id);
-      // If B is A's mirror image, show it as a reflection (and keep it that way when spinning together).
+      // If B is A's mirror image, start it facing as a reflection of A.
       const mirrorPair = !!(eA.stereo && eB.stereo && eA.stereo.t === 'rs' && eB.stereo.t === 'rs' && eA.con === eB.con && eA.stereo.v !== eB.stereo.v);
       this.cardB.viewer.initialQ = mirrorPair ? Q.mirror(ISO.DEFAULT_VIEW) : ISO.DEFAULT_VIEW.slice();
-      this.group.setMirrored(this.cardB.viewer, mirrorPair);
-      const frame = [a, b];
-      this.cardA.setCaption(ISO.escape(a.name), (eA.alt || '') + (eA.alt ? ' · ' : '') + ISO.formulaText(a.formula));
-      this.cardB.setCaption(ISO.escape(b.name), (eB.alt || '') + (eB.alt ? ' · ' : '') + ISO.formulaText(b.formula));
-      this.cardA.viewer.setMolecule(a, { frame: frame, transition: true });
-      this.cardB.viewer.setMolecule(b, { frame: frame, transition: true });
-      if (this.group.enabled) this.group.setEnabled(true);
+      const caption = function (e, m) { return (e.alt ? e.alt + ' · ' : '') + ISO.formulaText(m.formula); };
+      this.cardA.setCaption(ISO.escape(a.name), caption(eA, a));
+      this.cardB.setCaption(ISO.escape(b.name), caption(eB, b));
+      this.cardA.viewer.setMolecule(a, { frame: [a, b], transition: true });
+      this.cardB.viewer.setMolecule(b, { frame: [a, b], transition: true });
       this.stop();
       resetFlow($('flow-compare'));
       $('verdict-compare').hidden = true;
-      $('verdict-compare-empty').hidden = false;
     },
 
     stop: function () {
@@ -148,12 +128,12 @@
     },
 
     evidence: function (st) {
-      if (st.id === 'formula') return 'A: ' + ISO.formulaHTML(st.a) + ' · B: ' + ISO.formulaHTML(st.b);
+      if (st.id === 'formula') return 'A: ' + ISO.formulaHTML(st.a) + ', B: ' + ISO.formulaHTML(st.b);
       if (st.id === 'mirror') {
         const sA = ISO.entry($('pick-a').value).stereo, sB = ISO.entry($('pick-b').value).stereo;
-        if (st.ans) return 'Yes: B is the reflection of A, and the two can’t be stacked.';
-        if (sA && sB && sA.t === 'ct' && sB.t === 'ct') return 'No: A is ' + sA.v + ' and B is ' + sB.v + ' around the C=C.';
-        return 'No.';
+        if (st.ans) return 'B is the reflection of A, and they can’t be stacked.';
+        if (sA && sB && sA.t === 'ct' && sB.t === 'ct') return 'A is ' + sA.v + ' and B is ' + sB.v + ' around the C=C.';
+        return '';
       }
       return 'A: ' + ISO.escape(st.a) + '<br>B: ' + ISO.escape(st.b);
     },
@@ -161,12 +141,10 @@
     extra: function (key) {
       const a = ISO.get($('pick-a').value);
       const set = ISO.SETS.filter(function (s) { return s.title === a.formula; })[0];
-      const link = function (href, text) {
-        return '<div class="btn-row"><a class="btn" href="' + href + '">' + text + ' →</a></div>';
-      };
+      const link = function (href, text) { return '<p><a href="' + href + '">' + text + '</a></p>'; };
       if (key === 'enantiomers') return link('lab.html#mirror', 'Try to stack them in the Mirror Challenge');
       if (key === 'diastereomers' || key === 'same') return link('lab.html#spin', 'See why in Spin the Bond');
-      if (key === 'constitutional' && set) return link('lab.html#explore', 'See every ' + ISO.formulaHTML(a.formula) + ' isomer in 3D');
+      if (key === 'constitutional' && set) return link('lab.html#' + set.id, 'See every ' + ISO.formulaHTML(a.formula) + ' isomer in 3D');
       return '';
     },
 
@@ -177,8 +155,9 @@
       resetFlow(ol);
       ol.classList.add('running');
       $('verdict-compare').hidden = true;
-      $('verdict-compare-empty').hidden = true;
-      const delay = ISO.reducedMotion ? 0 : 650;
+      const delay = ISO.reducedMotion ? 0 : 500;
+      // The answer sits below the models, so bring it into view (no scroll if it's already showing).
+      $('compare-results').scrollIntoView({ behavior: ISO.reducedMotion ? 'auto' : 'smooth', block: 'nearest' });
       let i = 0;
       const next = function () {
         if (i < res.steps.length) {
@@ -194,6 +173,8 @@
           const v = $('verdict-compare');
           v.innerHTML = verdictHTML(res.result, self.extra(res.result));
           v.hidden = false;
+          // On phones the verdict is under the questions, so make sure it's visible too.
+          v.scrollIntoView({ behavior: ISO.reducedMotion ? 'auto' : 'smooth', block: 'nearest' });
         }
       };
       next();
@@ -201,13 +182,13 @@
   };
 
   /* =========================================================
-     GUIDED: yes/no questions for any two molecules
+     YOUR OWN MOLECULES: answer the four questions yourself
      ========================================================= */
   const HINTS = {
-    formula: 'Count every atom of each element in both molecules. For example, butane and 2-methylpropane are both C₄H₁₀.',
-    connections: 'Follow the longest carbon chain, then note where each branch, double bond or other atom (like O or Cl) is attached. Bending, turning or flipping a drawing doesn’t change its connections.',
-    stack: 'Imagine turning one molecule around and spinning its single bonds. If every atom can land on the same kind of atom in the other one, they’re the same molecule.',
-    mirror: 'Is one the reflection of the other? Look for a carbon holding four different groups. If they aren’t reflections, check the groups around the C=C: same side (cis) or opposite sides (trans)?'
+    formula: 'Count each type of atom in both. For example, butane and 2-methylpropane are both C₄H₁₀.',
+    connections: 'Follow the longest carbon chain and see where each branch, double bond or other atom (like O or Cl) is attached. Bending or flipping a drawing doesn’t change what’s connected to what.',
+    stack: 'Imagine turning one around and spinning its single bonds. If every atom can land on the same kind of atom in the other, they’re the same molecule.',
+    mirror: 'Is one a reflection of the other? Look for a carbon with four different groups on it. If they aren’t reflections, check the groups around the C=C: same side (cis) or opposite sides (trans)?'
   };
 
   const Guided = {
@@ -216,11 +197,7 @@
       buildFlow($('flow-guided'));
       $('g-yes').addEventListener('click', function () { self.answer(true); });
       $('g-no').addEventListener('click', function () { self.answer(false); });
-      $('g-back').addEventListener('click', function () { self.back(); });
-      this.restart();
-    },
-
-    restart: function () {
+      $('g-back').addEventListener('click', function () { self.path.pop(); self.render(); });
       this.path = [];
       this.render();
     },
@@ -228,18 +205,12 @@
     answer: function (yes) {
       this.path.push(yes);
       this.render();
-      const card = $('guided-card');
-      if (!card.hidden) $('g-yes').focus();
+      if (!$('guided-card').hidden) $('g-yes').focus();
     },
 
-    back: function () {
-      this.path.pop();
-      this.render();
-    },
-
-    /** Re-draws the flowchart and question from the list of answers so far. */
+    /** Redraws the questions and answers from the list of answers so far. */
     render: function () {
-      const ol = $('flow-guided');
+      const self = this, ol = $('flow-guided');
       resetFlow(ol);
       let at = 'formula', result = null;
       this.path.forEach(function (ans) {
@@ -253,17 +224,13 @@
         card.hidden = true;
         const ex = ISO.RESULTS[result].example;
         verdict.innerHTML = verdictHTML(result,
-          '<div class="btn-row">' +
-          '<button type="button" class="btn btn-primary" id="g-example" data-icon="cube">See an example in 3D</button>' +
-          '<button type="button" class="btn" id="g-restart" data-icon="reset">Start over</button></div>');
+          '<div class="btn-row"><button type="button" class="btn primary" id="g-example">See an example in 3D</button>' +
+          '<button type="button" class="btn" id="g-restart">Start over</button></div>');
         verdict.hidden = false;
-        verdict.querySelectorAll('[data-icon]').forEach(function (el) { el.insertAdjacentHTML('afterbegin', ISO.ICONS[el.dataset.icon]); });
-        const self = this;
-        $('g-restart').addEventListener('click', function () { self.restart(); $('g-yes').focus(); });
+        $('g-restart').addEventListener('click', function () { self.path = []; self.render(); $('g-yes').focus(); });
         $('g-example').addEventListener('click', function () {
           Finder.tabs.select('compare');
           Compare.load(ex[0], ex[1], true);
-          window.scrollTo({ top: 0, behavior: ISO.reducedMotion ? 'auto' : 'smooth' });
         });
         return;
       }
@@ -275,9 +242,9 @@
       card.hidden = false;
       verdict.hidden = true;
       const idx = ISO.FLOW.map(function (s) { return s.id; }).indexOf(at);
-      $('g-count').textContent = 'Question ' + (idx + 1);
+      $('g-count').textContent = 'Question ' + (idx + 1) + ' of 4';
       $('g-q').textContent = ISO.FLOW[idx].q;
-      $('g-hint').innerHTML = ISO.ICONS.bulb + '<span><b>How to check:</b> ' + HINTS[at] + '</span>';
+      $('g-hint').textContent = 'How to check: ' + HINTS[at];
       $('g-back').hidden = this.path.length === 0;
     }
   };

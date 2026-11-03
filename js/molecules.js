@@ -259,49 +259,49 @@
   /* ---------- Explore sets ---------- */
   ISO.SETS = [
     { id: 'c4h10', title: 'C4H10', ids: ['butane', 'isobutane'],
-      tip: 'Switch to <b>Space-filling</b>. Which one is more compact?' },
+      tip: 'Switch to space-filling. Which one takes up less room?' },
     { id: 'c5h12', title: 'C5H12', ids: ['pentane', 'isopentane', 'neopentane'],
-      tip: 'Hide the <b>H atoms</b> and turn on <b>Spin together</b> to compare the carbon skeletons.' },
+      tip: 'Untick H atoms to see just the carbon skeletons.' },
     { id: 'c6h14', title: 'C6H14', ids: ['hexane', '2-methylpentane', '3-methylpentane', '22-dimethylbutane', '23-dimethylbutane'],
-      tip: 'Hide the <b>H atoms</b>, then find the longest carbon chain in each one.' },
+      tip: 'Untick H atoms and find the longest carbon chain in each one.' },
     { id: 'c4h8', title: 'C4H8', ids: ['but-1-ene', 'cis-but-2-ene', 'trans-but-2-ene', 'methylpropene', 'cyclobutane', 'methylcyclopropane'],
-      tip: 'Which two are a cis/trans pair? Look at which side of the C=C the CH₃ groups sit on.' },
+      tip: 'Find the cis/trans pair. Look at which side of the C=C the CH₃ groups are on.' },
     { id: 'c2h2cl2', title: 'C2H2Cl2', ids: ['11-dce', 'cis-12-dce', 'trans-12-dce'],
-      tip: 'Turn on <b>Labels</b>. Which one has both Cl atoms on the same carbon?' },
+      tip: 'Turn on labels. Which one has both Cl atoms on the same carbon?' },
     { id: 'c2h6o', title: 'C2H6O', ids: ['ethanol', 'dimethyl-ether'],
-      tip: 'Same atoms, but find the oxygen (red). Where does it sit in each one?' },
+      tip: 'Find the red oxygen. Where is it in each one?' },
     { id: 'c6h12o6', title: 'C6H12O6', ids: ['glucose', 'fructose'],
-      tip: 'Find the C=O (the red O with a double bond). Which carbon is it on in each sugar?' },
+      tip: 'Find the C=O. Which carbon is it on in each sugar?' },
     { id: 'mirror', title: 'Mirror pairs', ids: ['r-butan-2-ol', 's-butan-2-ol', 'r-carvone', 's-carvone'], mirrored: [false, true, false, true],
-      tip: 'Turn on <b>Spin together</b>. Each pair spins like a reflection in a mirror.' }
+      tip: 'Tick “Turn together” and each pair turns like a reflection in a mirror.' }
   ];
 
   /* ---------- Isomer Finder logic ---------- */
   ISO.RESULTS = {
     not: {
       title: 'Not isomers',
-      text: 'Their molecular formulas are different, so they are simply different compounds.',
+      text: 'The molecular formulas are different, so they are just different compounds.',
       example: ['ethanol', 'butane']
     },
     constitutional: {
       title: 'Constitutional isomers',
-      text: 'Same molecular formula, but the atoms are connected in a different order.',
+      text: 'Same formula, but the atoms are connected in a different order.',
       example: ['butane', 'isobutane']
     },
     same: {
       title: 'Same molecule',
-      text: 'Everything lines up after turning it around or spinning single bonds. Different picture, same molecule.',
+      text: 'They match once you turn one around or spin its single bonds. It’s the same molecule drawn differently.',
       example: ['butane', 'butane-twisted']
     },
     enantiomers: {
       title: 'Enantiomers',
-      text: 'Mirror images that can never be stacked on top of each other, like your left and right hands.',
+      text: 'Mirror images that can’t be stacked on top of each other, like your left and right hands.',
       example: ['r-carvone', 's-carvone']
     },
     diastereomers: {
       title: 'Cis/trans isomers',
       sub: 'a type of diastereomer',
-      text: 'Same connections, but the groups sit on the same side (cis) or opposite sides (trans) of a double bond, which can’t rotate.',
+      text: 'Same connections, but the groups are on the same side (cis) or opposite sides (trans) of a double bond, which can’t rotate.',
       example: ['cis-but-2-ene', 'trans-but-2-ene']
     }
   };
@@ -316,7 +316,7 @@
   function stereoText(e) {
     if (!e.stereo) return e.twisted ? 'twisted around a single bond (single bonds spin freely)' : 'no cis/trans or mirror form';
     if (e.stereo.t === 'ct') return e.stereo.v + ' (groups on ' + (e.stereo.v === 'cis' ? 'the same side' : 'opposite sides') + ' of the C=C)';
-    return 'the (' + e.stereo.v + ') mirror form';
+    return 'the (' + e.stereo.v + ') form';
   }
 
   /** Walks the decision tree for two library molecules. */
