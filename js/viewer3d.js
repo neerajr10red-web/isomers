@@ -198,6 +198,7 @@
     this.tween = null;
     this.fade = null;
     this.spinSuppressed = false;
+    this.touchedAt = -Infinity; // last time someone dragged, zoomed or used the keys
     this.handlers = {};
     this._bind();
     this._observe();
@@ -270,9 +271,10 @@
     this.emit('zoom');
     this.animateTo(this.initialQ, 450);
   };
-  Viewer.prototype.animateTo = function (q, ms, done) {
+  /** Turn smoothly to q. always: still call done if someone grabs the model part-way. */
+  Viewer.prototype.animateTo = function (q, ms, done, always) {
     this.inertia = null;
-    this.tween = { from: this.q.slice(), to: q.slice(), start: 0, ms: ISO.reducedMotion ? 1 : (ms || 600), done: done };
+    this.tween = { from: this.q.slice(), to: q.slice(), start: 0, ms: ISO.reducedMotion ? 1 : (ms || 600), done: done, always: !!always };
     schedule();
   };
   /** map: {atomIndex: 'accent' | 'bad' | 'good' | cssColour}. */
@@ -290,10 +292,15 @@
     registry.delete(this);
     if (this._ro) this._ro.disconnect();
     if (this._io) this._io.disconnect();
+    if (this._unbind) this._unbind();
     this.handlers = {};
   };
 
   /* ---------- Per-frame motion ---------- */
+  const FRICTION = 0.92;    // how fast a flick slows down (share of speed kept each 60 fps frame)
+  const MAX_FLING = 0.006;  // fastest a flick can spin: radians per ms (about one turn a second)
+  const SPIN_PAUSE = 2500;  // auto-spin waits this long (ms) after someone lets go…
+  const SPIN_RAMP = 1200;   // …then speeds back up over this long
   Viewer.prototype._step = function (dt, t) {
     let more = false;
     if (this.fade) {
@@ -314,18 +321,26 @@
     } else if (this.inertia) {
       const it = this.inertia;
       this.q = Q.normalize(Q.mul(Q.fromAxisAngle(it.ax, it.ay, 0, it.w * dt), this.q));
-      it.w *= Math.pow(0.9, dt / 16.7);
-      if (it.w < 0.00003) this.inertia = null; else more = true;
+      it.w *= Math.pow(FRICTION, dt / 16.7);
+      if (it.w < 0.0001) this.inertia = null; else more = true;
       this.dirty = true;
       this.emit('rotate', { user: true });
       if (!this.inertia) this.emit('settle');
     } else if (this.opts.autoSpin && !this.dragging && !this.spinSuppressed && this.visible && this.mol) {
-      this.q = Q.normalize(Q.mul(Q.fromAxisAngle(0, 1, 0, this.opts.spinSpeed * dt / 1000), this.q));
-      this.dirty = true;
-      this.emit('rotate', { auto: true });
+      // After someone plays with the model, wait a moment, then ease back into spinning.
       more = true;
+      const since = t - this.touchedAt;
+      if (since > SPIN_PAUSE) {
+        const k = Math.min(1, (since - SPIN_PAUSE) / SPIN_RAMP);
+        const speed = this.opts.spinSpeed * k * k * (3 - 2 * k);
+        this.q = Q.normalize(Q.mul(Q.fromAxisAngle(0, 1, 0, speed * dt / 1000), this.q));
+        this.dirty = true;
+        this.emit('rotate', { auto: true });
+      }
     }
     if (this.pulse && this.visible) { this.dirty = true; more = true; }
+    // Keep the loop awake for a model that should go back to spinning (after a flick or animation ends).
+    if (this.opts.autoSpin && !this.dragging && !this.spinSuppressed && this.visible && this.mol) more = true;
     return more;
   };
 
@@ -333,74 +348,119 @@
   Viewer.prototype._bind = function () {
     const self = this, c = this.canvas;
     c.tabIndex = 0;
-    const pts = new Map();
-    let pinch = 0, lastMove = 0, vel = null;
+    const pts = new Map();   // fingers (or the mouse) pressed on this model right now
+    const samples = [];      // the last few moves, to work out how fast a flick was
+    let pinch = 0, pinched = false, moved = 0, lastDragEnd = -Infinity;
     const dist2 = function () {
       const a = Array.from(pts.values());
       return a.length < 2 ? 0 : Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
     };
+    // How far (radians) one pixel of dragging turns the model, so small and big models feel the same.
+    const perPx = function () {
+      const side = Math.min(c.clientWidth, c.clientHeight) || 300;
+      return Math.max(0.005, Math.min(0.0105, 3 / side));
+    };
+    const setDragging = function (on) { self.dragging = on; c.classList.toggle('dragging', on); };
+    const touch = function () { self.touchedAt = performance.now(); };
+    // Grabbing the model stops any animation. Some animations still finish their job (like showing an explanation).
+    const stopMotion = function () {
+      const tw = self.tween;
+      self.inertia = null;
+      self.tween = null;
+      if (tw && tw.always && tw.done) tw.done();
+    };
+
+    const finish = function (id, fling) {
+      if (!pts.has(id)) return;
+      pts.delete(id);
+      if (pts.size < 2) pinch = 0;
+      if (pts.size) return;
+      setDragging(false);
+      touch();
+      const now = performance.now();
+      if (moved > 6) lastDragEnd = now;
+      // A flick keeps it turning for a moment, at the average speed of the last tenth of a second.
+      const last = samples[samples.length - 1];
+      if (fling && !pinched && !ISO.reducedMotion && last && now - last.t < 70) {
+        let sx = 0, sy = 0;
+        samples.forEach(function (s) { sx += s.dx; sy += s.dy; });
+        const w = Math.hypot(sx, sy) * perPx() / (now - samples[0].t + 16);
+        if (w > 0.0006) { self.inertia = { ax: sy, ay: sx, w: Math.min(w, MAX_FLING) }; schedule(); }
+      }
+      samples.length = 0;
+      schedule(); // wake the loop: it sleeps during a drag, and auto-spin needs it again
+      self.emit('dragend');
+      if (!self.inertia) self.emit('settle');
+    };
+
     c.addEventListener('pointerdown', function (e) {
       if (!self.opts.interactive) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
+      // A fresh first touch: forget any finger we never heard back from.
+      if (e.isPrimary && pts.size) pts.clear();
       try { c.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      self.inertia = null;
-      self.tween = null;
-      if (pts.size === 1) { self.dragging = true; vel = null; self.emit('dragstart'); }
-      if (pts.size === 2) pinch = dist2();
+      stopMotion();
+      touch();
+      if (pts.size === 1) { setDragging(true); moved = 0; pinched = false; samples.length = 0; self.emit('dragstart'); }
+      else if (pts.size === 2) { pinch = dist2(); pinched = true; samples.length = 0; }
       // No focus() here: a mouse drag shouldn't leave a focus box on the model. Keyboard users reach it with Tab.
       e.preventDefault();
     });
     c.addEventListener('pointermove', function (e) {
       const p = pts.get(e.pointerId);
       if (!p) return;
+      // The mouse button was let go somewhere we never heard about (another window, a pop-up menu…): stop dragging.
+      if (e.pointerType === 'mouse' && !(e.buttons & 1)) { finish(e.pointerId, false); return; }
       const dx = e.clientX - p.x, dy = e.clientY - p.y;
+      if (!dx && !dy) return;
       p.x = e.clientX; p.y = e.clientY;
-      if (pts.size === 1) {
-        const ang = Math.hypot(dx, dy) * 0.0095;
-        if (ang > 0) {
-          self.rotateBy(dy, dx, 0, ang, true);
-          const now = performance.now();
-          const dtm = Math.max(8, now - lastMove);
-          lastMove = now;
-          vel = { ax: dy, ay: dx, w: ang / dtm };
-        }
+      moved += Math.abs(dx) + Math.abs(dy);
+      touch();
+      if (pts.size === 1 && !pinched) {
+        self.rotateBy(dy, dx, 0, Math.hypot(dx, dy) * perPx(), true);
+        const now = performance.now();
+        samples.push({ t: now, dx: dx, dy: dy });
+        while (samples.length > 1 && now - samples[0].t > 100) samples.shift();
       } else if (pts.size === 2) {
+        // Pinch to zoom. After a pinch the model stays put until every finger is lifted, so it can't jump.
         const d = dist2();
         if (pinch > 0 && d > 0) self.setZoom(self.zoom * d / pinch);
         pinch = d;
       }
     });
-    const end = function (e) {
-      if (!pts.has(e.pointerId)) return;
-      pts.delete(e.pointerId);
-      if (pts.size < 2) pinch = 0;
-      if (pts.size === 0) {
-        self.dragging = false;
-        if (vel && performance.now() - lastMove < 60 && vel.w > 0.0005 && !ISO.reducedMotion) {
-          self.inertia = { ax: vel.ax, ay: vel.ay, w: Math.min(vel.w, 0.02) };
-          schedule();
-        }
-        vel = null;
-        self.emit('dragend');
-        if (!self.inertia) self.emit('settle');
-      }
+    c.addEventListener('pointerup', function (e) { finish(e.pointerId, true); });
+    // A cancelled touch (the page started scrolling) or lost capture never flicks.
+    c.addEventListener('pointercancel', function (e) { finish(e.pointerId, false); });
+    c.addEventListener('lostpointercapture', function (e) { finish(e.pointerId, false); });
+    // Let go if the window loses focus mid-drag (Alt+Tab, a pop-up…), so the model never gets stuck to the mouse.
+    const cancelAll = function () { Array.from(pts.keys()).forEach(function (id) { finish(id, false); }); };
+    const onHide = function () { if (document.hidden) cancelAll(); };
+    window.addEventListener('blur', cancelAll);
+    document.addEventListener('visibilitychange', onHide);
+    this._unbind = function () {
+      window.removeEventListener('blur', cancelAll);
+      document.removeEventListener('visibilitychange', onHide);
     };
-    c.addEventListener('pointerup', end);
-    c.addEventListener('pointercancel', end);
-    c.addEventListener('lostpointercapture', end);
-    c.addEventListener('dblclick', function () { if (self.opts.interactive) self.resetView(); });
+    c.addEventListener('dblclick', function () {
+      if (!self.opts.interactive) return;
+      // Only a real double-click resets the view, not two quick drags in a row.
+      if (moved > 6 || performance.now() - lastDragEnd < 600) return;
+      self.resetView();
+    });
     c.addEventListener('wheel', function (e) {
       if (!self.opts.interactive) return;
       // Plain scrolling always scrolls the page. Zoom needs Ctrl + scroll (or a trackpad pinch), or full screen.
       if (!e.ctrlKey && !self.isExpanded()) return;
       e.preventDefault();
+      touch();
       self.setZoom(self.zoom * Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0016)));
     }, { passive: false });
     c.addEventListener('keydown', function (e) {
       if (!self.opts.interactive) return;
       const step = 0.2;
       let handled = true;
+      if (/^(Arrow|[+=_0rR-]$)/.test(e.key)) { stopMotion(); touch(); }
       switch (e.key) {
         case 'ArrowLeft': self.rotateBy(0, 1, 0, -step, true); break;
         case 'ArrowRight': self.rotateBy(0, 1, 0, step, true); break;
@@ -594,6 +654,18 @@
     ctx.strokeStyle = sh.rim;
     ctx.globalAlpha = 0.5 * alphaAll;
     ctx.stroke();
+    // Small shine spot, so the atoms look glossy.
+    if (r > 6) {
+      const hx = it.x - r * 0.36, hy = it.y - r * 0.4, hr = r * 0.3;
+      const shine = ctx.createRadialGradient(hx, hy, 0, hx, hy, hr);
+      shine.addColorStop(0, 'rgba(255,255,255,0.75)');
+      shine.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.globalAlpha = alphaAll;
+      ctx.fillStyle = shine;
+      ctx.beginPath();
+      ctx.arc(hx, hy, hr, 0, TAU);
+      ctx.fill();
+    }
     // In space-filling mode the H labels would cover the whole shape, so only heavier atoms get labels.
     if (this.opts.labels && !(it.el === 'H' && this.opts.style === 'space')) {
       const fs = Math.max(9 * s.dpr, Math.min(24 * s.dpr, r * 0.95));
@@ -681,6 +753,11 @@
     this.members.push(m);
     viewer.on('rotate', function () { self._push(m); });
     viewer.on('zoom', function () { self._pushZoom(m); });
+    // Grabbing one model stops the others gliding, so they never tug against each other.
+    viewer.on('dragstart', function () {
+      if (!self.enabled) return;
+      self.members.forEach(function (o) { if (o !== m) { o.v.inertia = null; o.v.tween = null; } });
+    });
     return this;
   };
   SyncGroup.prototype.setMirrored = function (viewer, on) {
@@ -696,7 +773,11 @@
     this.busy = true;
     const canon = src.mirrored ? Q.mirror(src.v.q) : src.v.q;
     this.members.forEach(function (m) {
-      if (m !== src) m.v.setRotation(m.mirrored ? Q.mirror(canon) : canon.slice(), true);
+      if (m === src) return;
+      // The model being moved leads; the others just follow it.
+      m.v.inertia = null;
+      m.v.tween = null;
+      m.v.setRotation(m.mirrored ? Q.mirror(canon) : canon.slice(), true);
     });
     this.busy = false;
   };

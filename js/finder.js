@@ -46,7 +46,7 @@
   }
   function verdictHTML(key, extra) {
     const r = ISO.RESULTS[key];
-    return '<p class="verdict-who">The Great Neeraj says:</p>' +
+    return '<p class="kicker">The Great Neeraj says</p>' +
       '<h3>' + r.title + '</h3>' +
       (r.sub ? '<p class="muted">(' + r.sub + ')</p>' : '') +
       '<p>' + r.text + '</p>' + (extra || '');

@@ -1,4 +1,4 @@
-/* Isomers by Neeraj the Beloved — shared helpers: dark mode, tabs, formulas, small animations. */
+/* Isomers by Neeraj the Beloved — shared helpers: tabs, formulas, the help pop-up, small animations. */
 (function () {
   'use strict';
   const ISO = window.ISO = window.ISO || {};
@@ -8,40 +8,10 @@
   const svg = function (inner) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
   };
-  const ICONS = ISO.ICONS = {
-    moon: svg('<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'),
-    sun: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
+  ISO.ICONS = {
     expand: svg('<path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>'),
     close: svg('<path d="M6 6l12 12M18 6L6 18"/>')
   };
-
-  /* ---------- Dark mode ---------- */
-  const THEME_KEY = 'iso-theme';
-  function systemDark() {
-    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  }
-  ISO.currentTheme = function () {
-    return document.documentElement.getAttribute('data-theme') || (systemDark() ? 'dark' : 'light');
-  };
-  function updateThemeButtons() {
-    const dark = ISO.currentTheme() === 'dark';
-    document.querySelectorAll('.theme-toggle').forEach(function (b) {
-      b.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
-      b.title = dark ? 'Light mode' : 'Dark mode';
-      b.innerHTML = dark ? ICONS.sun : ICONS.moon;
-    });
-  }
-  function setTheme(t) {
-    document.documentElement.setAttribute('data-theme', t);
-    try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* storage blocked: fine */ }
-    updateThemeButtons();
-    document.dispatchEvent(new CustomEvent('iso:theme'));
-  }
-  if (window.matchMedia) {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = function () { updateThemeButtons(); document.dispatchEvent(new CustomEvent('iso:theme')); };
-    if (mq.addEventListener) mq.addEventListener('change', onChange); else if (mq.addListener) mq.addListener(onChange);
-  }
 
   /* ---------- Formulas: "C4H10" -> C<sub>4</sub>H<sub>10</sub> ---------- */
   ISO.formulaHTML = function (f) {
@@ -118,13 +88,27 @@
 
   /* ---------- Page setup ---------- */
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.theme-toggle').forEach(function (b) {
-      b.addEventListener('click', function () { setTheme(ISO.currentTheme() === 'dark' ? 'light' : 'dark'); });
-    });
-    updateThemeButtons();
     const here = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
-    document.querySelectorAll('.site-nav a').forEach(function (a) {
+    document.querySelectorAll('.topnav a').forEach(function (a) {
       if ((a.getAttribute('href') || '').toLowerCase() === here) a.setAttribute('aria-current', 'page');
     });
+
+    // "How it works" pop-up: the ? button opens it; Got it, Esc or a click outside closes it.
+    const help = document.getElementById('help');
+    if (help) {
+      const open = function () {
+        if (help.showModal) help.showModal(); else help.setAttribute('open', '');
+      };
+      const close = function () {
+        if (help.close) help.close(); else help.removeAttribute('open');
+      };
+      document.querySelectorAll('[data-help]').forEach(function (b) { b.addEventListener('click', open); });
+      help.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', close); });
+      help.addEventListener('click', function (e) {
+        const r = help.getBoundingClientRect();
+        const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        if (!inside) close();
+      });
+    }
   });
 })();

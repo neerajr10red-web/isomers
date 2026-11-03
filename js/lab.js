@@ -8,8 +8,11 @@
   const P = function (a) { return [a.x, a.y, a.z]; };
   const say = function (id, html, tone) {
     const el = $(id);
+    if (el.innerHTML === html) return; // same message: don't flash it again
     el.className = 'status' + (tone ? ' ' + tone : '');
     el.innerHTML = html;
+    void el.offsetWidth; // restart the fade-in
+    el.classList.add('pop');
   };
 
   /* =========================================================
@@ -57,9 +60,8 @@
       if (!set) return;
       $('set-picker').querySelectorAll('button').forEach(function (b) { pressed(b, b.dataset.set === id); });
       const isMirror = set.id === 'mirror';
-      $('set-title').innerHTML = isMirror
-        ? 'Mirror pairs <span class="muted">(' + (set.ids.length / 2) + ' pairs)</span>'
-        : ISO.formulaHTML(set.title) + ' <span class="muted">(' + set.ids.length + ' isomers)</span>';
+      $('set-title').innerHTML = isMirror ? 'Mirror pairs' : ISO.formulaHTML(set.title);
+      $('set-count').textContent = isMirror ? (set.ids.length / 2) + ' pairs' : set.ids.length + ' isomers';
       $('set-tip').textContent = 'Try this: ' + set.tip;
 
       this.cards.forEach(function (c) { c.viewer.destroy(); c.el.remove(); });
@@ -75,7 +77,7 @@
         // Mirror forms start facing as reflections of their partner.
         if (mirrored) card.viewer.initialQ = Q.mirror(card.viewer.initialQ);
         // Same scale for the whole set (or for each mirror pair), so sizes can be compared.
-        card.viewer.setMolecule(mol, { frame: isMirror ? [mols[i], mols[i ^ 1]] : mols });
+        card.viewer.setMolecule(mol, { frame: isMirror ? [mols[i], mols[i ^ 1]] : mols, transition: true });
         self.group.add(card.viewer, mirrored);
         return card;
       });
@@ -171,7 +173,7 @@
         twist: 0, flipped: false, warned: false, spunMsg: false
       };
       const v = this.card.viewer;
-      v.setMolecule(mol, { frame: [mol] });
+      v.setMolecule(mol, { frame: [mol], transition: true });
       v.setGhost(null);
       v.setAxis([a, b]);
       v.setHighlights(this.marks());
@@ -470,6 +472,7 @@
         P(find(this.user, 'Br')), P(find(this.user, 'Cl')),
         Q.rotate(this.ghostQ, P(find(this.target, 'Br'))), Q.rotate(this.ghostQ, P(find(this.target, 'Cl'))));
       v.setHighlights(null);
+      // Passing true: the explanation still appears if someone grabs the model mid-animation.
       v.animateTo(best, 1000, function () {
         const hl = {};
         self.user.atoms.forEach(function (a, i) { if (a.el === 'H' || a.el === 'F') hl[i] = 'bad'; });
@@ -478,7 +481,7 @@
         say('mirror-status', '<p><b>3 out of 5 is the best anyone can do.</b> Line up any two groups and the other two (circled) are always swapped. ' +
           'Mirror images that can’t be stacked are called enantiomers, like your left and right hands.</p>' +
           '<p class="muted">Even the Great Neeraj can’t do it. He tried.</p>', 'bad');
-      });
+      }, true);
     }
   };
 
