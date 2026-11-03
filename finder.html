@@ -5,85 +5,93 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Isomer Finder · Isomers by Neeraj the Beloved</title>
   <meta name="description" content="Pick two molecules and find out if they are constitutional isomers, cis/trans isomers, enantiomers, the same molecule, or not isomers at all.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23c62828'/%3E%3Cg stroke='white' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M10.5 16l-4-4.5M10.5 16l-4 4.5M10.5 16l2.5-5M21.5 16l4-4.5M21.5 16l4 4.5M21.5 16l-2.5-5'/%3E%3C/g%3E%3Ccircle cx='10.5' cy='16' r='2.8' fill='white'/%3E%3Ccircle cx='21.5' cy='16' r='2.8' fill='white'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23c62828'/%3E%3Cg stroke='white' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M10.5 16l-4-4.5M10.5 16l-4 4.5M10.5 16l2.5-5M21.5 16l4-4.5M21.5 16l4 4.5M21.5 16l-2.5-5'/%3E%3C/g%3E%3Ccircle cx='10.5' cy='16' r='3' fill='white'/%3E%3Ccircle cx='21.5' cy='16' r='3' fill='white'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap">
   <link rel="stylesheet" href="css/style.css">
-  <script>try{var t=localStorage.getItem('iso-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-inner">
-      <a class="site-name" href="index.html">Isomers <span>by Neeraj the Beloved</span></a>
-      <nav class="site-nav" aria-label="Main">
-        <a href="index.html">Home</a>
-        <a href="lab.html">3D Lab</a>
-        <a href="finder.html">Isomer Finder</a>
-      </nav>
-      <button class="theme-toggle" type="button" aria-label="Switch to dark mode"></button>
-    </div>
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 32 32"><g stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M10.5 16l-4-4.5M10.5 16l-4 4.5M10.5 16l2.5-5M21.5 16l4-4.5M21.5 16l4 4.5M21.5 16l-2.5-5"/></g><circle cx="10.5" cy="16" r="3" fill="#fff"/><circle cx="21.5" cy="16" r="3" fill="#fff"/></svg></span>
+      Isomers
+    </a>
+    <div class="topbar-mid"></div>
+    <nav class="topnav" aria-label="Main">
+      <a href="lab.html">3D Lab</a>
+      <a href="finder.html"><span class="long">Isomer </span>Finder</a>
+    </nav>
+    <button class="help-btn" type="button" data-help aria-label="How it works" title="How it works">?</button>
   </header>
 
-  <main>
-    <div class="container">
-      <h1>Isomer Finder</h1>
-      <p class="intro">Pick two molecules. The Finder asks four yes/no questions and tells you what kind of isomers they are.</p>
-
-      <div class="tabs" role="tablist" aria-label="Finder modes">
-        <button type="button" role="tab" id="tab-compare" aria-controls="panel-compare" data-hash="compare">Compare two models</button>
-        <button type="button" role="tab" id="tab-guided" aria-controls="panel-guided" data-hash="guided">Use your own molecules</button>
+  <main class="page">
+    <div class="card info">
+      <p class="kicker">Isomer Finder</p>
+      <h1>What kind of isomers are they?</h1>
+      <div class="tabs seg-tabs" role="tablist" aria-label="Finder modes">
+        <button type="button" role="tab" id="tab-compare" aria-controls="panel-compare" data-hash="compare">Compare<span class="long"> two models</span></button>
+        <button type="button" role="tab" id="tab-guided" aria-controls="panel-guided" data-hash="guided">Your own<span class="long"> molecules</span></button>
       </div>
-
-      <!-- Compare two molecules from the list -->
-      <section id="panel-compare" role="tabpanel" aria-labelledby="tab-compare">
-        <div class="examples" id="presets"><span class="muted">Examples:</span></div>
-        <div class="compare-grid">
-          <div class="pick">
-            <label for="pick-a">Molecule A</label>
-            <select id="pick-a"></select>
-          </div>
-          <div class="pick">
-            <label for="pick-b">Molecule B</label>
-            <select id="pick-b"></select>
-          </div>
-        </div>
-        <div class="btn-row"><button type="button" class="btn primary" id="run">Find out</button></div>
-        <div class="compare-grid pair-stages">
-          <div id="stage-a"></div>
-          <div id="stage-b"></div>
-        </div>
-        <div class="finder-results" id="compare-results">
-          <ol class="flow" id="flow-compare" aria-label="The four questions"></ol>
-          <div class="verdict" id="verdict-compare" hidden aria-live="polite"></div>
-        </div>
-      </section>
-
-      <!-- Yes/no questions for any two molecules -->
-      <section id="panel-guided" role="tabpanel" aria-labelledby="tab-guided" hidden>
-        <p>For molecules from your notes or textbook. Answer each question about your two molecules.</p>
-        <div class="finder-results">
-          <ol class="flow" id="flow-guided" aria-label="Your answers so far"></ol>
-          <div>
-            <div class="guided-card" id="guided-card">
-              <p class="muted" id="g-count"></p>
-              <h3 id="g-q"></h3>
-              <p class="hint" id="g-hint"></p>
-              <div class="btn-row">
-                <button type="button" class="btn primary" id="g-yes">Yes</button>
-                <button type="button" class="btn" id="g-no">No</button>
-                <button type="button" class="btn" id="g-back">Back</button>
-              </div>
-            </div>
-            <div class="verdict" id="verdict-guided" hidden aria-live="polite"></div>
-          </div>
-        </div>
-      </section>
     </div>
+
+    <!-- Compare two molecules from the list -->
+    <section id="panel-compare" role="tabpanel" aria-labelledby="tab-compare">
+      <div class="pick-row">
+        <div class="pick">
+          <label for="pick-a">Molecule A</label>
+          <select id="pick-a"></select>
+        </div>
+        <div class="pick">
+          <label for="pick-b">Molecule B</label>
+          <select id="pick-b"></select>
+        </div>
+        <button type="button" class="btn primary big" id="run">Find out</button>
+      </div>
+      <div class="examples" id="presets"><span class="muted">Examples:</span></div>
+      <div class="compare-grid">
+        <div id="stage-a"></div>
+        <div id="stage-b"></div>
+      </div>
+      <div class="finder-results" id="compare-results">
+        <ol class="flow card" id="flow-compare" aria-label="The four questions"></ol>
+        <div class="verdict card" id="verdict-compare" hidden aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- Yes/no questions for any two molecules -->
+    <section id="panel-guided" role="tabpanel" aria-labelledby="tab-guided" hidden>
+      <div class="finder-results">
+        <ol class="flow card" id="flow-guided" aria-label="Your answers so far"></ol>
+        <div>
+          <div class="card guided-card" id="guided-card">
+            <p class="kicker" id="g-count"></p>
+            <h3 id="g-q"></h3>
+            <p class="hint" id="g-hint"></p>
+            <div class="btn-row">
+              <button type="button" class="btn primary" id="g-yes">Yes</button>
+              <button type="button" class="btn" id="g-no">No</button>
+              <button type="button" class="btn" id="g-back">Back</button>
+            </div>
+          </div>
+          <div class="verdict card" id="verdict-guided" hidden aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <p class="credit">Made by Neeraj the Beloved for Lalama and friends. 3D structures from <a href="https://pubchem.ncbi.nlm.nih.gov/" rel="noopener">PubChem</a>.</p>
   </main>
 
-  <footer class="site-footer">
-    <div class="container">
-      <p>Made by Neeraj the Beloved for Lalama and friends. 3D structures from <a href="https://pubchem.ncbi.nlm.nih.gov/" rel="noopener">PubChem</a>.</p>
-    </div>
-  </footer>
+  <dialog class="help" id="help" aria-labelledby="help-title">
+    <h2 id="help-title">How it works</h2>
+    <ol>
+      <li><span class="n">1</span><span><b>Pick two molecules</b> from the lists, or tap an example.</span></li>
+      <li><span class="n">2</span><span><b>Press Find out.</b> The Finder asks four yes/no questions about them.</span></li>
+      <li><span class="n">3</span><span><b>Read the verdict:</b> constitutional isomers, cis/trans isomers, enantiomers, the same molecule, or not isomers.</span></li>
+      <li><span class="n">4</span><span><b>Molecules on paper?</b> Open “Your own molecules” and answer the questions yourself.</span></li>
+    </ol>
+    <button type="button" class="btn primary" data-close>Got it</button>
+  </dialog>
 
   <script src="js/site.js"></script>
   <script src="js/structures.js"></script>

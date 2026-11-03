@@ -4,27 +4,34 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Page not found · Isomers by Neeraj the Beloved</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap">
   <style>
     /* Self-contained so it looks right at any address. */
-    :root { --bg: #fff; --text: #1b1e23; --muted: #5f6672; --accent: #c62828; --accent-ink: #fff; }
-    @media (prefers-color-scheme: dark) {
-      :root { --bg: #15171b; --text: #e7e9ed; --muted: #a3a9b4; --accent: #ff7070; --accent-ink: #1f0b0b; }
-    }
+    :root { color-scheme: only light; --bg: #f8f7f9; --bg-2: #f2e9eb; --card: #fff; --text: #1d1d1f; --muted: #6b6b72; --accent: #c62828; --accent-ink: #fff; --glow: rgba(198, 40, 40, 0.35); }
     body {
       margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
-      background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background: radial-gradient(1000px 500px at 100% 100%, var(--bg-2), transparent 70%), var(--bg);
+      color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     }
-    main { max-width: 28rem; }
-    h1 { font-size: 1.6rem; margin: 0 0 0.5rem; }
-    p { color: var(--muted); font-size: 1.05rem; line-height: 1.5; margin: 0 0 1.4rem; }
-    a { display: inline-block; padding: 0.6rem 1rem; border-radius: 6px; background: var(--accent); color: var(--accent-ink); font-weight: 600; text-decoration: none; }
+    main {
+      max-width: 30rem; text-align: center; background: var(--card); border-radius: 28px; padding: 2.2rem 2rem;
+      box-shadow: 0 1px 3px rgba(40, 20, 30, 0.04), 0 18px 40px -14px rgba(40, 20, 30, 0.2);
+    }
+    .big { font-family: "Nunito", system-ui, sans-serif; font-weight: 800; font-size: 3.5rem; line-height: 1; color: var(--accent); margin: 0 0 0.6rem; }
+    h1 { font-family: "Nunito", system-ui, sans-serif; font-weight: 800; font-size: 1.5rem; margin: 0 0 0.5rem; }
+    p { color: var(--muted); font-size: 1.02rem; line-height: 1.5; margin: 0 0 1.5rem; }
+    a {
+      display: inline-block; padding: 0.7rem 1.4rem; border-radius: 999px; background: var(--accent); color: var(--accent-ink);
+      font-family: "Nunito", system-ui, sans-serif; font-weight: 700; text-decoration: none; box-shadow: 0 8px 18px -8px var(--glow);
+    }
   </style>
 </head>
 <body>
   <main>
-    <h1>404: this page has no isomers.</h1>
+    <p class="big">404</p>
+    <h1>This page has no isomers.</h1>
     <p>It doesn’t even exist. The Great Neeraj checked behind the mirror too.</p>
-    <a id="home-link" href="./">Go to the home page</a>
+    <a id="home-link" href="./">Take me home</a>
   </main>
   <script>
     // On GitHub Pages the home page lives at /<repo-name>/, so link there.

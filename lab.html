@@ -5,107 +5,113 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>3D Lab · Isomers by Neeraj the Beloved</title>
   <meta name="description" content="Turn 3D models of isomers, twist single and double bonds, and try to stack a molecule on its mirror image.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23c62828'/%3E%3Cg stroke='white' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M10.5 16l-4-4.5M10.5 16l-4 4.5M10.5 16l2.5-5M21.5 16l4-4.5M21.5 16l4 4.5M21.5 16l-2.5-5'/%3E%3C/g%3E%3Ccircle cx='10.5' cy='16' r='2.8' fill='white'/%3E%3Ccircle cx='21.5' cy='16' r='2.8' fill='white'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23c62828'/%3E%3Cg stroke='white' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M10.5 16l-4-4.5M10.5 16l-4 4.5M10.5 16l2.5-5M21.5 16l4-4.5M21.5 16l4 4.5M21.5 16l-2.5-5'/%3E%3C/g%3E%3Ccircle cx='10.5' cy='16' r='3' fill='white'/%3E%3Ccircle cx='21.5' cy='16' r='3' fill='white'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap">
   <link rel="stylesheet" href="css/style.css">
-  <script>try{var t=localStorage.getItem('iso-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-inner">
-      <a class="site-name" href="index.html">Isomers <span>by Neeraj the Beloved</span></a>
-      <nav class="site-nav" aria-label="Main">
-        <a href="index.html">Home</a>
-        <a href="lab.html">3D Lab</a>
-        <a href="finder.html">Isomer Finder</a>
-      </nav>
-      <button class="theme-toggle" type="button" aria-label="Switch to dark mode"></button>
-    </div>
-  </header>
-
-  <main>
-    <div class="container">
-      <h1>3D Lab</h1>
-      <p class="intro">Drag a model to turn it. Double-click to reset it. The square button in the corner makes it full screen.</p>
-
-      <div class="tabs" role="tablist" aria-label="Lab activities">
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 32 32"><g stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M10.5 16l-4-4.5M10.5 16l-4 4.5M10.5 16l2.5-5M21.5 16l4-4.5M21.5 16l4 4.5M21.5 16l-2.5-5"/></g><circle cx="10.5" cy="16" r="3" fill="#fff"/><circle cx="21.5" cy="16" r="3" fill="#fff"/></svg></span>
+      Isomers
+    </a>
+    <div class="topbar-mid">
+      <div class="tabs seg-tabs" role="tablist" aria-label="Lab activities">
         <button type="button" role="tab" id="tab-explore" aria-controls="panel-explore" data-hash="explore">Explore</button>
         <button type="button" role="tab" id="tab-spin" aria-controls="panel-spin" data-hash="spin">Spin the Bond</button>
         <button type="button" role="tab" id="tab-mirror" aria-controls="panel-mirror" data-hash="mirror">Mirror Challenge</button>
       </div>
-
-      <!-- Explore -->
-      <section id="panel-explore" role="tabpanel" aria-labelledby="tab-explore">
-        <p>Pick a formula to see all of its isomers, drawn to the same scale.</p>
-        <div class="choices" id="set-picker" role="group" aria-label="Molecular formula"></div>
-        <h2 id="set-title"></h2>
-        <p class="tip" id="set-tip"></p>
-        <div class="options">
-          <div class="choices" id="style-picker" role="group" aria-label="Model style">
-            <button type="button" data-style="ball" aria-pressed="true">Ball and stick</button>
-            <button type="button" data-style="space" aria-pressed="false">Space-filling</button>
-          </div>
-          <label class="check"><input type="checkbox" id="opt-h" checked> H atoms</label>
-          <label class="check"><input type="checkbox" id="opt-labels"> Labels</label>
-          <label class="check"><input type="checkbox" id="opt-sync"> Turn together</label>
-        </div>
-        <div class="viewer-grid" id="explore-grid"></div>
-      </section>
-
-      <!-- Spin the Bond -->
-      <section id="panel-spin" role="tabpanel" aria-labelledby="tab-spin" hidden>
-        <p>Single bonds can spin. Double bonds can’t. Twist each one and see what that means for cis and trans.</p>
-        <div class="split">
-          <div class="split-pick"><div class="choices" id="spin-picker" role="group" aria-label="Choose a molecule"></div></div>
-          <div class="split-stage" id="spin-stage"></div>
-          <div class="side">
-            <h3 id="spin-name"></h3>
-            <p class="sub" id="spin-sub"></p>
-            <label class="slider-label" for="twist">Twist the bond <output id="twist-out" for="twist">0°</output></label>
-            <input type="range" id="twist" min="-180" max="180" step="1" value="0">
-            <div class="readout" id="spin-readout"></div>
-            <div class="btn-row">
-              <button type="button" class="btn" id="spin-play">Spin it</button>
-              <button type="button" class="btn primary" id="spin-flip">Force a flip</button>
-              <button type="button" class="btn" id="spin-reset">Reset</button>
-            </div>
-            <div class="status" id="spin-status" aria-live="polite"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Mirror Challenge -->
-      <section id="panel-mirror" role="tabpanel" aria-labelledby="tab-mirror" hidden>
-        <p>Turn your molecule until every atom sits inside its dashed circle. Round 1 is a turned copy. Round 2 is the mirror image.</p>
-        <div class="split">
-          <div class="split-pick">
-            <div class="choices" id="round-picker" role="group" aria-label="Round">
-              <button type="button" data-round="copy" aria-pressed="true">Round 1: a copy</button>
-              <button type="button" data-round="mirror" aria-pressed="false">Round 2: the mirror image</button>
-            </div>
-          </div>
-          <div class="split-stage">
-            <div id="mirror-stage"></div>
-            <p class="how-to">Dashed circles are the target and stay still. The solid molecule is yours.</p>
-          </div>
-          <div class="side">
-            <p class="score"><b id="match-score">1</b> of 5 atoms line up</p>
-            <div class="match-meter" id="match-meter"></div>
-            <div class="btn-row">
-              <button type="button" class="btn" id="mirror-shuffle">Shuffle</button>
-              <button type="button" class="btn primary" id="mirror-show">Show me</button>
-            </div>
-            <div class="status" id="mirror-status" aria-live="polite"></div>
-          </div>
-        </div>
-      </section>
     </div>
+    <nav class="topnav" aria-label="Main">
+      <a href="lab.html">3D Lab</a>
+      <a href="finder.html"><span class="long">Isomer </span>Finder</a>
+    </nav>
+    <button class="help-btn" type="button" data-help aria-label="How it works" title="How it works">?</button>
+  </header>
+
+  <main class="page">
+    <!-- Explore -->
+    <section id="panel-explore" role="tabpanel" aria-labelledby="tab-explore">
+      <div class="card info">
+        <p class="kicker">Explore <span class="tag" id="set-count"></span></p>
+        <h1 id="set-title"></h1>
+        <div class="choices" id="set-picker" role="group" aria-label="Molecular formula"></div>
+        <p class="tip" id="set-tip"></p>
+      </div>
+      <div class="viewer-grid" id="explore-grid"></div>
+      <div class="dock" role="group" aria-label="Model options">
+        <div class="choices" id="style-picker" role="group" aria-label="Model style">
+          <button type="button" data-style="ball" aria-pressed="true">Ball and stick</button>
+          <button type="button" data-style="space" aria-pressed="false">Space-filling</button>
+        </div>
+        <span class="dock-sep" aria-hidden="true"></span>
+        <label class="check"><input type="checkbox" id="opt-h" checked> H atoms</label>
+        <label class="check"><input type="checkbox" id="opt-labels"> Labels</label>
+        <label class="check"><input type="checkbox" id="opt-sync"> Turn together</label>
+      </div>
+    </section>
+
+    <!-- Spin the Bond -->
+    <section id="panel-spin" role="tabpanel" aria-labelledby="tab-spin" hidden>
+      <div class="split">
+        <div class="split-stage" id="spin-stage"></div>
+        <div class="side card">
+          <p class="kicker">Spin the Bond</p>
+          <div class="choices" id="spin-picker" role="group" aria-label="Choose a molecule"></div>
+          <h2 id="spin-name"></h2>
+          <p class="sub" id="spin-sub"></p>
+          <label class="slider-label" for="twist">Twist the bond <output id="twist-out" for="twist">0°</output></label>
+          <input type="range" id="twist" min="-180" max="180" step="1" value="0">
+          <div class="readout" id="spin-readout"></div>
+          <div class="btn-row">
+            <button type="button" class="btn" id="spin-play">Spin it</button>
+            <button type="button" class="btn primary" id="spin-flip">Force a flip</button>
+            <button type="button" class="btn" id="spin-reset">Reset</button>
+          </div>
+          <div class="status" id="spin-status" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mirror Challenge -->
+    <section id="panel-mirror" role="tabpanel" aria-labelledby="tab-mirror" hidden>
+      <div class="split">
+        <div class="split-stage">
+          <div id="mirror-stage"></div>
+          <p class="how-to">Dashed circles are the target and stay still. The solid molecule is yours.</p>
+        </div>
+        <div class="side card">
+          <p class="kicker">Mirror Challenge</p>
+          <div class="choices" id="round-picker" role="group" aria-label="Round">
+            <button type="button" data-round="copy" aria-pressed="true">Round 1: a copy</button>
+            <button type="button" data-round="mirror" aria-pressed="false">Round 2: mirror image</button>
+          </div>
+          <p class="score"><b id="match-score">1</b> of 5 atoms line up</p>
+          <div class="match-meter" id="match-meter"></div>
+          <div class="btn-row">
+            <button type="button" class="btn" id="mirror-shuffle">Shuffle</button>
+            <button type="button" class="btn primary" id="mirror-show">Show me</button>
+          </div>
+          <div class="status" id="mirror-status" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <p class="credit">Made by Neeraj the Beloved for Lalama and friends. 3D structures from <a href="https://pubchem.ncbi.nlm.nih.gov/" rel="noopener">PubChem</a>.</p>
   </main>
 
-  <footer class="site-footer">
-    <div class="container">
-      <p>Made by Neeraj the Beloved for Lalama and friends. 3D structures from <a href="https://pubchem.ncbi.nlm.nih.gov/" rel="noopener">PubChem</a>.</p>
-    </div>
-  </footer>
+  <dialog class="help" id="help" aria-labelledby="help-title">
+    <h2 id="help-title">How it works</h2>
+    <ol>
+      <li><span class="n">1</span><span><b>Drag a model</b> to turn it. Double-click resets it, and Ctrl + scroll zooms.</span></li>
+      <li><span class="n">2</span><span><b>Explore</b> shows every isomer of a formula, all drawn to the same scale.</span></li>
+      <li><span class="n">3</span><span><b>Spin the Bond</b> lets you twist single, double and triple bonds.</span></li>
+      <li><span class="n">4</span><span><b>Mirror Challenge:</b> line your molecule up with the dashed target. Round 2 is the mirror image.</span></li>
+    </ol>
+    <button type="button" class="btn primary" data-close>Got it</button>
+  </dialog>
 
   <script src="js/site.js"></script>
   <script src="js/structures.js"></script>
