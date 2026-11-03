@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3D Model Lab · Isomers by Neeraj the Beloved</title>
+  <meta name="description" content="Spin real 3D models of isomers, twist single and double bonds, and try to stack mirror-image molecules.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%235146e0'/%3E%3Cg stroke='white' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M10.5 16l-4-4.5M10.5 16l-4 4.5M10.5 16l2.5-5M21.5 16l4-4.5M21.5 16l4 4.5M21.5 16l-2.5-5'/%3E%3C/g%3E%3Ccircle cx='10.5' cy='16' r='2.8' fill='white'/%3E%3Ccircle cx='21.5' cy='16' r='2.8' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+  <script>try{var t=localStorage.getItem('iso-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html" aria-label="Isomers by Neeraj the Beloved, home">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M16 3v26" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.2 2.6" opacity=".45" fill="none"/>
+          <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"><path d="M9 16L4.5 10M9 16L4.5 22M9 16l3.5-6M23 16l4.5-6M23 16l4.5 6M23 16l-3.5-6"/></g>
+          <circle cx="9" cy="16" r="3.6" fill="currentColor"/><circle cx="23" cy="16" r="3.6" fill="currentColor"/>
+          <circle cx="4.5" cy="10" r="2.1" fill="#e3342b"/><circle cx="4.5" cy="22" r="2.1" fill="#1ea84c"/><circle cx="12.5" cy="10" r="1.7" fill="#93a0b4"/>
+          <circle cx="27.5" cy="10" r="2.1" fill="#e3342b"/><circle cx="27.5" cy="22" r="2.1" fill="#1ea84c"/><circle cx="19.5" cy="10" r="1.7" fill="#93a0b4"/>
+        </svg>
+        <span class="brand-text">Isomers <em>by Neeraj the Beloved</em></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="index.html">Home</a>
+        <a href="lab.html">3D Lab</a>
+        <a href="finder.html"><span class="nav-long">Isomer </span>Finder</a>
+      </nav>
+      <button class="icon-btn theme-toggle" type="button" aria-label="Switch to dark mode"></button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="container">
+      <div class="page-head">
+        <span class="eyebrow">3D Model Lab</span>
+        <h1>Grab a molecule and spin it.</h1>
+        <p class="lede">Every model is built from real 3D data. Drag to rotate, pinch to zoom, and use full screen for the big screen.</p>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Lab activities">
+        <button type="button" role="tab" id="tab-explore" aria-controls="panel-explore" data-hash="explore" data-icon="cube">Explore isomers</button>
+        <button type="button" role="tab" id="tab-spin" aria-controls="panel-spin" data-hash="spin" data-icon="twist">Spin the Bond</button>
+        <button type="button" role="tab" id="tab-mirror" aria-controls="panel-mirror" data-hash="mirror" data-icon="mirror">Mirror Challenge</button>
+      </div>
+
+      <!-- Explore -->
+      <section id="panel-explore" role="tabpanel" aria-labelledby="tab-explore">
+        <p class="panel-intro">Pick a molecular formula to see all of its isomers side by side, drawn to the same scale.</p>
+        <div class="seg seg-formula" id="set-picker" role="group" aria-label="Molecular formula"></div>
+        <div class="set-head"><h2 id="set-title"></h2><span class="set-count" id="set-count"></span></div>
+        <div class="try-this" id="set-tip"></div>
+        <div class="toolbar explore-tools" role="group" aria-label="Model options">
+          <div class="seg" id="style-picker" role="group" aria-label="Model style">
+            <button type="button" data-style="ball" aria-pressed="true">Ball &amp; stick</button>
+            <button type="button" data-style="space" aria-pressed="false">Space-filling</button>
+          </div>
+          <span class="sep" aria-hidden="true"></span>
+          <button type="button" class="toggle" id="opt-h"><span class="dot"></span>H atoms</button>
+          <button type="button" class="toggle" id="opt-labels"><span class="dot"></span>Labels</button>
+          <button type="button" class="toggle" id="opt-sync"><span class="dot"></span>Spin together</button>
+          <button type="button" class="toggle" id="opt-spin"><span class="dot"></span>Auto-spin</button>
+        </div>
+        <div class="viewer-grid" id="explore-grid"></div>
+      </section>
+
+      <!-- Spin the Bond -->
+      <section id="panel-spin" role="tabpanel" aria-labelledby="tab-spin" hidden>
+        <p class="panel-intro">Why do double bonds make cis and trans isomers when single bonds don’t? Twist them and see.</p>
+        <div class="seg" id="spin-picker" role="group" aria-label="Choose a molecule"></div>
+        <div class="split" style="margin-top:1rem">
+          <div id="spin-stage"></div>
+          <div class="side-panel">
+            <div class="card">
+              <span class="bond-badge" id="spin-badge"></span>
+              <h3 class="mol-title" id="spin-name"></h3>
+              <p class="mol-sub" id="spin-sub"></p>
+            </div>
+            <div class="card twist-control">
+              <label for="twist">Twist the bond <output id="twist-out" for="twist">0°</output></label>
+              <input type="range" id="twist" min="-180" max="180" step="1" value="0">
+              <div class="readout" id="spin-readout"></div>
+              <div class="btn-row" style="margin-top:0.9rem">
+                <button type="button" class="btn" id="spin-play" data-icon="play">Spin it</button>
+                <button type="button" class="btn btn-primary" id="spin-flip" data-icon="flip">Force a flip</button>
+                <button type="button" class="btn" id="spin-reset" data-icon="reset">Reset</button>
+              </div>
+            </div>
+            <div class="status" id="spin-status" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mirror Challenge -->
+      <section id="panel-mirror" role="tabpanel" aria-labelledby="tab-mirror" hidden>
+        <p class="panel-intro">Turn your molecule until it sits exactly on the faded target. Get all five atoms to match… if you can.</p>
+        <div class="seg" id="round-picker" role="group" aria-label="Round">
+          <button type="button" data-round="copy" aria-pressed="true">Round 1 · A turned copy</button>
+          <button type="button" data-round="mirror" aria-pressed="false">Round 2 · The mirror image</button>
+        </div>
+        <div class="split" style="margin-top:1rem">
+          <div>
+            <div id="mirror-stage"></div>
+            <div class="legend" style="margin-top:0.6rem">
+              <span><i class="ghost"></i>Dashed = the target (stays still)</span>
+              <span><i></i>Solid = yours (drag it)</span>
+            </div>
+          </div>
+          <div class="side-panel">
+            <div class="card">
+              <h3>Atoms matching</h3>
+              <div class="match-score" id="match-score" aria-live="polite">1 <small>/ 5</small></div>
+              <div class="match-meter" id="match-meter" style="margin-top:0.5rem"></div>
+              <div class="btn-row" style="margin-top:1rem">
+                <button type="button" class="btn" id="mirror-shuffle" data-icon="shuffle">Shuffle</button>
+                <button type="button" class="btn btn-primary" id="mirror-show" data-icon="eye">Show me</button>
+              </div>
+            </div>
+            <div class="status" id="mirror-status" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:2.4rem">
+          <h2>Side by side</h2>
+          <p class="panel-intro">The same molecule and its reflection. Spin either one and watch the other.</p>
+          <div class="mirror-pair" id="mirror-pair"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Made by <strong>Neeraj the Beloved</strong> for SCH4U Chemistry. Free for anyone to use and share.</p>
+      <p class="muted">3D structures from <a href="https://pubchem.ncbi.nlm.nih.gov/" rel="noopener">PubChem</a> (U.S. National Library of Medicine). No ads, no tracking, no sign-up.</p>
+    </div>
+  </footer>
+
+  <script src="js/site.js"></script>
+  <script src="js/structures.js"></script>
+  <script src="js/molecules.js"></script>
+  <script src="js/viewer3d.js"></script>
+  <script src="js/lab.js"></script>
+</body>
+</html>

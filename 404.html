@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page not found · Isomers by Neeraj the Beloved</title>
+  <style>
+    /* Self-contained so it looks right at any address. */
+    :root { --bg: #f4f5fa; --surface: #fff; --text: #161925; --muted: #5b6275; --accent: #5146e0; --accent-ink: #fff; --border: #e0e3ec; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0d0f15; --surface: #161922; --text: #e9ebf2; --muted: #a1a8b9; --accent: #8f86ff; --accent-ink: #11111d; --border: #2a2f3d; }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+      background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; text-align: center;
+    }
+    .box { max-width: 30rem; }
+    .code { font-size: clamp(4rem, 18vw, 7rem); font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: var(--accent); margin: 0 0 0.5rem; }
+    h1 { font-size: 1.6rem; margin: 0 0 0.6rem; }
+    p { color: var(--muted); font-size: 1.1rem; line-height: 1.5; margin: 0 0 1.6rem; }
+    a.btn {
+      display: inline-block; padding: 0.8rem 1.4rem; border-radius: 999px; text-decoration: none;
+      background: var(--accent); color: var(--accent-ink); font-weight: 700;
+    }
+    svg { width: 120px; height: 72px; margin-bottom: 0.5rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="box">
+    <svg viewBox="0 0 120 72" aria-hidden="true">
+      <path d="M60 4v64" stroke="currentColor" stroke-width="2" stroke-dasharray="3 4" fill="none" opacity=".6"/>
+      <g stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M36 36L16 18M36 36L16 54M36 36l14-20M84 36l20-18M84 36l20 18M84 36L70 16"/></g>
+      <circle cx="36" cy="36" r="10" fill="currentColor"/><circle cx="84" cy="36" r="10" fill="currentColor"/>
+      <circle cx="16" cy="18" r="6" fill="#e3342b"/><circle cx="16" cy="54" r="6" fill="#1ea84c"/><circle cx="50" cy="16" r="5" fill="#93a0b4"/>
+      <circle cx="104" cy="18" r="6" fill="#e3342b"/><circle cx="104" cy="54" r="6" fill="#1ea84c"/><circle cx="70" cy="16" r="5" fill="#93a0b4"/>
+    </svg>
+    <p class="code">404</p>
+    <h1>This page has no isomers.</h1>
+    <p>It doesn’t even exist. The Great Neeraj looked everywhere, including behind the mirror.</p>
+    <a class="btn" id="home-link" href="./">Take me home</a>
+  </main>
+  <script>
+    // On GitHub Pages project sites the home page lives at /<repo-name>/, so link there.
+    (function () {
+      var parts = location.pathname.split('/').filter(Boolean);
+      if (/\.github\.io$/.test(location.hostname) && parts.length > 0) {
+        document.getElementById('home-link').href = '/' + parts[0] + '/';
+      }
+    })();
+  </script>
+</body>
+</html>
